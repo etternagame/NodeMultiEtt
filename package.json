@@ -1,0 +1,66 @@
+{
+  "name": "multiett",
+  "version": "0.1.0",
+  "description": "Etterna websocket multiplayer/chat server implementation",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Nickito12/NodeMultiEtt"
+  },
+  "bugs": {
+    "url": "https://github.com/Nickito12/NodeMultiEtt/issues"
+  },
+  "main": "start.js",
+  "dependencies": {
+    "dotenv": "^5.0.1",
+    "express": "^4.16.2",
+    "minimist": "^1.2.0",
+    "mongodb": "^3.0.4",
+    "request": "^2.85.0",
+    "uws": "^9.14.0",
+    "ws": "^5.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^4.18.2",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "^2.9.0",
+    "eslint-plugin-prettier": "^2.6.0",
+    "husky": "^0.14.3",
+    "lint-staged": "^7.0.0",
+    "prettier": "^1.11.1"
+  },
+  "scripts": {
+    "start": "node start.js",
+    "lint": "eslint **/*.js",
+    "format": "prettier --write **/*.{js,json,md}",
+    "precommit": "lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,json,md}": [
+      "prettier --write",
+      "git add"
+    ]
+  },
+  "contributors": [
+    {
+      "name": "Nicolas Abram Lujan",
+      "email": "abramlujan@gmail.com"
+    },
+    {
+      "name": "theropfather"
+    },
+    {
+      "name": "Fission"
+    }
+  ],
+  "keywords": [
+    "etterna",
+    "websocket",
+    "server",
+    "game",
+    "multiplayer",
+    "chat"
+  ],
+  "author": "Nicolas Abram Lujan",
+  "license": "MIT"
+}
