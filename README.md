@@ -11,6 +11,7 @@ A message MUST
 
 be a plain JavaScript object.
 have a type property.
+
 An action MAY
 
 have an error property.
@@ -26,7 +27,7 @@ The optional payload property MAY be any type of value. It represents the payloa
 
 
 #### error
-The optional error property MAY be a string which describes the error. No payload should be sent if an error is sent.
+The optional error property MAY be present, and if it is a true boolean the payload should describe the error. payload.msg should be a desscriptive error message, and payload.code the error code.
 
 #### id
 unique message id present in messages sent from the client.
