@@ -14,8 +14,60 @@ var request = require('request');
 function makeMessage(type, payload = null) {
   return payload ? { type: type, payload: payload } : { type: type };
 }
+const selectionModeDescriptions = {
+  0: 'By chartkey',
+  1: 'By title, subtitle, artist, difficulty meter and filehash',
+  2: 'By title, subtitle, artist and filehash'
+};
+const selectionModes = {
+  0: ch => {
+    return {
+      chartkey: ch.chartkey
+    };
+  },
+  1: ch => {
+    return {
+      title: ch.title,
+      subtitle: ch.subtitle,
+      artist: ch.artist,
+      difficulty: ch.difficulty,
+      meter: ch.meter,
+      filehash: ch.filehash
+    };
+  },
+  2: ch => {
+    return {
+      title: ch.title,
+      subtitle: ch.subtitle,
+      artist: ch.artist,
+      filehash: ch.filehash
+    };
+  }
+};
+function color(c) {
+  return `|c0${c}`;
+}
+const systemPrepend = `${color('BBBBFF')}System:${color('FFFFFF')} `;
+const ownerColor = 'BBFFBB';
+const playerColor = 'AAFFFF';
+const opColor = 'FFBBBB';
+const stringToColour = function(str) {
+  var hash = 0;
+  for (var i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  var colour = '';
+  for (var i = 0; i < 3; i++) {
+    var value = (hash >> (i * 8)) & 0xff;
+    colour += ('00' + value.toString(16)).substr(-2);
+  }
+  return colour;
+};
+function colorize(string, colour = stringToColour(string)) {
+  return color(colour) + string + color('FFFFFF');
+}
 class Chart {
-  constructor(message) {
+  constructor(message, player) {
     this.title = message.title;
     this.subtitle = message.subtitle;
     this.artist = message.artist;
@@ -24,6 +76,7 @@ class Chart {
     this.rate = message.rate;
     this.difficulty = message.difficulty;
     this.meter = message.meter;
+    this.pickedBy = player.user;
   }
 }
 class Room {
@@ -39,51 +92,70 @@ class Room {
     this.state = 0; // Selecting(0), Playing(1)
     this.chart = null;
     this.freeRate = false;
+    this.playing = false;
   }
-  serializeChart() {
-    let c = {};
-    switch (this.selectionMode) {
-      case 0: // By chartkey
-        c.chartkey = this.chart.chartkey;
-        break;
-      case 1: // By metadata
-        c.title = this.chart.title;
-        c.subtitle = this.chart.subtitle;
-        c.artist = this.chart.artist;
-        c.difficulty = this.chart.difficulty;
-        c.meter = this.chart.meter;
-        c.filehash = this.chart.filehash;
-        break;
-      case 2: // By filehash+metadata
-        c.title = this.chart.title;
-        c.subtitle = this.chart.subtitle;
-        c.artist = this.chart.artist;
-        c.filehash = this.chart.filehash;
-        break;
+  serializeChart(chart = this.chart) {
+    if (!chart) return {};
+    const selectionMode = selectionModes[this.selectionMode];
+    if (!selectionMode) {
+      this.sendChat(`${systemPrepend}Invalid selection mode`);
+      return {};
     }
+    const c = selectionMode(chart);
     if (!this.freeRate) {
-      c.rate = this.chart.rate;
+      c.rate = chart.rate;
     }
     return c;
   }
-  startChart(message) {
-    this.chart = new Chart(message);
+  startChart(player, message) {
+    let ch = new Chart(message, player);
+    // Use the selectionMode criteria
+    const newChart = this.serializeChart(ch);
+    const oldChart = this.serializeChart(this.chart);
+    if (
+      !this.chart ||
+      player.user !== this.chart.pickedBy ||
+      JSON.stringify(newChart) !== JSON.stringify(oldChart)
+    ) {
+      this.selectChart(player, message);
+      return;
+    }
+    this.chart = ch;
     this.state = 1;
-    this.send(makeMessage('startchart', { chart: this.serializeChart() }));
-    this.sendChat(`Starting ${this.chart.title}`);
+    this.send(makeMessage('startchart', { chart: newChart }));
+    this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
+    this.playing = true;
   }
   selectChart(player, message) {
-    this.chart = new Chart(message);
+    this.chart = new Chart(message, player);
     this.send(makeMessage('selectchart', { chart: this.serializeChart() }));
     this.sendChat(
-      `${player.user} selected ${message.title} (${message.difficulty}: ${message.meter})`
+      `${systemPrepend}${player.user} selected ` +
+        colorize(
+          `${message.title} (${message.difficulty}: ${message.meter})${
+            message.rate ? ` ${parseFloat(message.rate / 1000).toFixed(2)}` : ''
+          }`,
+          stringToColour(message.title)
+        )
+    );
+  }
+  refreshUserList() {
+    this.send(
+      makeMessage('userlist', {
+        players: this.players.map(x => {
+          return {
+            name: x.user,
+            status: x.state + 1
+          };
+        })
+      })
     );
   }
   enter(player) {
     player.room = this;
     this.players.push(player);
     player.send(makeMessage('enterroom', { entered: true }));
-    this.sendChat(`${player.user} joined`);
+    this.sendChat(`${systemPrepend}${player.user} joined`);
     player.state = 0;
     if (this.chart) player.send(makeMessage('selectchart', { chart: this.serializeChart() }));
   }
@@ -97,10 +169,20 @@ class Room {
     };
   }
   updateStatus() {
+    const oldState = this.state;
     this.state = 0;
-    this.players.forEach(pl => {
-      if (pl.state != 0) this.state = 1;
+    this.players.some(pl => {
+      if (pl.state !== 0) {
+        this.state = 1;
+        return true;
+      }
+      return false;
     });
+    this.refreshUserList();
+    if (this.state === 0 && this.playing) {
+      this.playing = false;
+      this.chart = null;
+    }
   }
   send(message) {
     this.players.forEach(pl => {
@@ -157,13 +239,16 @@ class Player {
     this.room.remove(this);
     const room = this.room;
     this.room = null;
+    this.send(makeMessage('userlist', { players: [] }));
     return room;
   }
   sendRoomList(_rooms) {
     this.send(makeMessage('roomlist', { rooms: _rooms }));
   }
   sendChat(type, msgStr, _tab = '') {
-    this.send(makeMessage('chat', { msgtype: type, tab: _tab, msg: msgStr }));
+    this.send(
+      makeMessage('chat', { msgtype: type, tab: _tab, msg: msgStr + color('FFFFFF') + ' ' })
+    );
   }
   send(message) {
     message.id = this.ws.msgId;
@@ -183,40 +268,8 @@ class Server {
     this.serverName = params.serverName || 'nodeMultiEtt';
     this.pingInterval = params.pingInterval || 15000;
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
-    this.globalCommands = {
-      pm: (player, message, command, params) => {
-        this.pm(player, params[0], params.slice(1).join(' '));
-      }
-    };
-    this.roomCommands = {
-      free: (player, message, command, params) => {
-        player.room.free = !player.room.free;
-        player.room.sendChat(
-          `The room is now ${player.room.free ? '' : 'not '}in free song picking mode`
-        );
-      },
-      freerate: (player, message, command, params) => {
-        player.room.freerate = !player.room.freerate;
-        player.room.sendChat(`The room is now ${player.room.freerate ? '' : 'not'} rate free mode`);
-      },
-      op: (player, message, command, params) => {
-        if (player.room.owner != player.user) {
-          player.sendChat(0, "You're not the room owner!");
-          return;
-        }
-        if (!player.room.players.find(params[0])) {
-          player.sendChat(0, `${params[0]} is not in the room!`);
-          return;
-        }
-        if (!player.room.ops.find(params[0])) {
-          player.room.ops.push(params[0]);
-          player.room.sendChat(`${params[0]} is now a room operator`);
-        } else {
-          player.room.ops = player.room.ops.filter(x => x !== params[0]);
-          player.room.sendChat(`${params[0]} is no longer a room operator`);
-        }
-      }
-    };
+    this.globalCommands = this.makeGlobalCommands();
+    this.roomCommands = this.makeRoomCommands();
     this.messageHandlers = {
       login: params.onLogin || this.onLogin,
       leaveroom: params.onLeaveRoom || this.onLeaveRoom,
@@ -245,6 +298,63 @@ class Server {
     this.currentRooms = [];
     this.playerList = [];
   }
+  makeGlobalCommands() {
+    return {
+      pm: (player, message, command, params) => {
+        this.pm(player, params[0], params.slice(1).join(' '));
+      }
+    };
+  }
+  makeRoomCommands() {
+    return {
+      free: (player, message, command, params) => {
+        player.room.free = !player.room.free;
+        player.room.sendChat(
+          `${systemPrepend}The room is now ${
+            player.room.free ? '' : 'not '
+          }in free song picking mode`
+        );
+      },
+      freerate: (player, message, command, params) => {
+        player.room.freerate = !player.room.freerate;
+        player.room.sendChat(
+          `${systemPrepend}The room is now ${player.room.freerate ? '' : 'not'} rate free mode`
+        );
+      },
+      selectionMode: (player, message, command, params) => {
+        const selectionMode = params[0] ? selectionModes[params[0]] : null;
+        if (!selectionMode) {
+          player.sendChat(
+            `${systemPrepend}Invalid selection mode. Valid ones are:\n` +
+              JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')
+          );
+        }
+        player.room.selectionMode = params[0];
+        player.room.sendChat(
+          `${systemPrepend}The room is now in "${
+            selectionModeDescriptions[params[0]]
+          }" selection mode`
+        );
+      },
+      op: (player, message, command, params) => {
+        if (player.room.owner != player.user) {
+          player.sendChat(0, `${systemPrepend}You're not the room owner!`);
+          return;
+        }
+        if (!player.room.players.find(x => x.user === params[0])) {
+          player.sendChat(0, `${systemPrepend}${params[0]} is not in the room!`);
+          return;
+        }
+        if (!player.room.ops.find(x => x === params[0])) {
+          player.room.ops.push(params[0]);
+          player.room.sendChat(`${systemPrepend}${params[0]} is now a room operator`);
+        } else {
+          player.room.ops = player.room.ops.filter(x => x !== params[0]);
+          player.room.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
+        }
+      }
+    };
+  }
   addRoom(message, creator) {
     const room = new Room(message.name, message.desc, message.pass);
     this.currentRooms.push(room);
@@ -252,6 +362,7 @@ class Server {
     room.owner = creator;
     creator.room = room;
     this.sendAll(makeMessage('newroom', { room: room.serialize() }));
+    this.updateRoomStatus(room);
     return room;
   }
   addPlayer(_user, _pass, _ws) {
@@ -304,10 +415,10 @@ class Server {
         this.sendAll(makeMessage('deleteroom', { room: room.serialize() }));
       } else {
         // send notice to players in room that someone left
-        room.sendChat(`${player.user} left`);
+        room.sendChat(`${systemPrepend}${player.user} left`);
         this.updateRoomStatus(room);
       }
-      player.sendChat(0, `Left room ${room.name}`);
+      player.sendChat(0, `${systemPrepend}Left room ${room.name}`);
     }
   }
   resendAllRooms() {
@@ -406,21 +517,29 @@ class Server {
   }
   onSelectChart(player, message) {
     if (!player.room || !player.room.canSelect(player)) {
-      player.sendChat(1, 'You dont have the rights to select a chart!', player.room.name);
+      player.sendChat(
+        1,
+        `${systemPrepend}You dont have the rights to select a chart!`,
+        player.room.name
+      );
       return;
     }
     player.room.selectChart(player, message);
   }
   onStartChart(player, message) {
     if (!player.room || !player.room.canSelect(player)) {
-      player.sendChat(1, 'You dont have the rights to start a chart!', player.room.name);
+      player.sendChat(
+        1,
+        `${systemPrepend}You dont have the rights to start a chart!`,
+        player.room.name
+      );
       return;
     }
     let err = player.room.canStart();
     if (!err) {
-      player.room.startChart(message);
+      player.room.startChart(player, message);
       this.sendAll(makeMessage('updateroom', { room: player.room.serialize() }));
-    } else player.room.sendChat(`Cant start (${err})`);
+    } else player.room.sendChat(`${systemPrepend}Cant start (${err})`);
   }
   onLogin(player, message) {
     if (!message.user || !message.pass) {
@@ -535,7 +654,7 @@ class Server {
   }
   onMissingChart(player, message) {
     if (!player.user || !player.room) return;
-    if (player.room) player.room.sendChat(`${player.user} doesnt have the chart`);
+    if (player.room) player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
   }
   onCreateRoom(player, message) {
     if (!player.user) return;
@@ -544,9 +663,10 @@ class Server {
     if (!existingRoom) {
       player.room = this.addRoom(message, player);
       player.send(makeMessage('createroom', { created: true }));
+      player.sendChat(1, `${systemPrepend} Created room "${message.name}"`, message.name);
     } else {
       player.send(makeMessage('createroom', { created: false }));
-      player.sendChat(0, 'Room name already in use');
+      player.sendChat(0, `${systemPrepend}Room name already in use`);
     }
   }
   enterRoom(player, room) {
@@ -558,11 +678,11 @@ class Server {
     this.leaveRoom(player);
     const room = this.currentRooms.find(x => x.name === message.name);
     if (room)
-      if (room.pass === message.pass) {
+      if (!room.pass || room.pass === message.pass) {
         this.enterRoom(player, room);
       } else {
         player.send(makeMessage('enterroom', { entered: false }));
-        player.sendChat(0, 'Incorrect password');
+        player.sendChat(0, `${systemPrepend}Incorrect password`);
       }
     else {
       player.room = this.addRoom(message, player);
@@ -598,12 +718,22 @@ class Server {
     switch (message.msgtype) {
       case 0: // lobby (everyone)
         this.wss.clients.forEach(client => {
-          client.player.sendChat(0, `${player.user}: ${message.msg}`);
+          client.player.sendChat(0, `${colorize(player.user, playerColor)}: ${message.msg}`);
         });
         break;
       case 1: // room (people in room)
+        if (!player.room || player.room.name !== message.tab) return;
         player.room.players.forEach(pl => {
-          pl.sendChat(1, `${player.user}: ${message.msg}`, message.tab);
+          pl.sendChat(
+            1,
+            `${colorize(
+              player.user,
+              player.user == player.room.owner
+                ? ownerColor
+                : player.room.ops.find(x => x === player.user) ? opColor : playerColor
+            )}: ${message.msg}`,
+            message.tab
+          );
         });
         break;
       case 2: // pm (tabname=user to send to)
@@ -614,7 +744,7 @@ class Server {
   pm(player, receptorName, msg) {
     const playerToSendTo = this.playerList.find(x => x.user === receptorName);
     if (!playerToSendTo) {
-      player.sendChat(0, `Could not find user ${receptorName}}`);
+      player.sendChat(0, `${systemPrepend}Could not find user ${receptorName}}`);
     } else {
       playerToSendTo.sendChat(2, `${player.user}: ${msg}`, player.user);
       player.sendChat(2, `${player.user}: ${msg}`, receptorName);
