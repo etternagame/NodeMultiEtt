@@ -602,6 +602,7 @@ class Server {
             if (JSON.parse(body).success === 'Valid') {
               player.user = message.user;
               player.pass = message.pass;
+              player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
               player.send(makeMessage('login', { logged: true, msg: '' }));
               return;
             }
@@ -621,6 +622,7 @@ class Server {
           // normal login
           player.user = message.user;
           player.pass = message.pass;
+          player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
         } else {
           player.send(
@@ -635,6 +637,7 @@ class Server {
         player.user = message.user;
         player.pass = message.pass;
         this.createAccount(player);
+        player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
         player.send(makeMessage('login', { logged: true, msg: '' }));
       }
     }
