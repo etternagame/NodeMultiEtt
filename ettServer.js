@@ -7,6 +7,7 @@ try {
   console.log('require uws failed, trying ws');
   SocketServer = require('ws').Server;
 }
+const discord = require('discord.js');
 const path = require('path');
 const MongoClient = require('mongodb').MongoClient;
 var request = require('request');
@@ -297,6 +298,32 @@ class Server {
     this.accountList = [];
     this.currentRooms = [];
     this.playerList = [];
+    this.discordChannelId = params.channelId || '429399431725580288';
+    this.discordGuildId = params.guildId || '339597420239519755';
+    this.discordBotToken = params.botToken;
+    this.useDiscord = this.discordChannelId && this.discordGuildId && this.discordBotToken;
+    if (this.useDiscord) {
+      this.discordClient = new discord.Client();
+      this.discordClient.login(this.discordBotToken);
+      const serv = this;
+      this.discordClient.on('ready', () => {
+        console.log(`Discord logged in as ${this.discordClient.user.tag}!`);
+        serv.discordChannel = serv.discordClient.guilds
+          .get(serv.discordGuildId)
+          .channels.get(serv.discordChannelId);
+      });
+      this.discordClient.on('message', msg => {
+        if (msg.channel.id !== serv.discordChannelId || msg.author.bot) return;
+        serv.wss.clients.forEach(client => {
+          client.player.sendChat(
+            0,
+            `${colorize('Discord')} (${colorize(msg.author.username, playerColor)}): ${
+              msg.cleanContent
+            }`
+          );
+        });
+      });
+    }
   }
   makeGlobalCommands() {
     return {
@@ -571,7 +598,7 @@ class Server {
           form: { username: message.user, password: message.pass }
         },
         function(error, response, body) {
-          if (response.statusCode == 200) {
+          if (response && response.statusCode == 200) {
             if (JSON.parse(body).success === 'Valid') {
               player.user = message.user;
               player.pass = message.pass;
@@ -720,6 +747,7 @@ class Server {
         this.wss.clients.forEach(client => {
           client.player.sendChat(0, `${colorize(player.user, playerColor)}: ${message.msg}`);
         });
+        if (this.useDiscord) this.discordChannel.send(`${player.user}: ${message.msg}`);
         break;
       case 1: // room (people in room)
         if (!player.room || player.room.name !== message.tab) {

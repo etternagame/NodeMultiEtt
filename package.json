@@ -11,6 +11,7 @@
   },
   "main": "start.js",
   "dependencies": {
+    "discord.js": "^11.3.2",
     "dotenv": "^5.0.1",
     "express": "^4.16.2",
     "minimist": "^1.2.0",
