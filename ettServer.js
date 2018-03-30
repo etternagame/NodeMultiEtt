@@ -744,7 +744,7 @@ class Server {
   pm(player, receptorName, msg) {
     const playerToSendTo = this.playerList.find(x => x.user === receptorName);
     if (!playerToSendTo) {
-      player.sendChat(0, `${systemPrepend}Could not find user ${receptorName}}`);
+      player.sendChat(0, `${systemPrepend}Could not find user ${receptorName}`);
     } else {
       playerToSendTo.sendChat(2, `${player.user}: ${msg}`, player.user);
       player.sendChat(2, `${player.user}: ${msg}`, receptorName);
