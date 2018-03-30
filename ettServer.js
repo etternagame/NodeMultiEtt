@@ -722,7 +722,10 @@ class Server {
         });
         break;
       case 1: // room (people in room)
-        if (!player.room || player.room.name !== message.tab) return;
+        if (!player.room || player.room.name !== message.tab) {
+          player.sendChat(1, `${systemPrepend}You're not in the room ${message.tab}`, message.tab);
+          return;
+        }
         player.room.players.forEach(pl => {
           pl.sendChat(
             1,
