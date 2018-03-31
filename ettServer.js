@@ -592,6 +592,7 @@ class Server {
       return;
     }
     if (!this.mongoDBURL) {
+      const serv = this;
       request.post(
         {
           url: 'https://api.etternaonline.com/v1/login',
@@ -602,7 +603,7 @@ class Server {
             if (JSON.parse(body).success === 'Valid') {
               player.user = message.user;
               player.pass = message.pass;
-              player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
+              player.sendChat(0, `Welcome to ${colorize(serv.serverName)}`);
               player.send(makeMessage('login', { logged: true, msg: '' }));
               return;
             }
