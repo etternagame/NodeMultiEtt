@@ -248,7 +248,11 @@ class Player {
   }
   sendChat(type, msgStr, _tab = '') {
     this.send(
-      makeMessage('chat', { msgtype: type, tab: _tab, msg: msgStr + color('FFFFFF') + ' ' })
+      makeMessage('chat', {
+        msgtype: type,
+        tab: _tab,
+        msg: color('FFFFFF') + msgStr + color('FFFFFF') + ' '
+      })
     );
   }
   send(message) {
