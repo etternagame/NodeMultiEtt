@@ -45,6 +45,9 @@ const selectionModes = {
     };
   }
 };
+function removeMultiColor(s) {
+  return s.replace(/(\|c[0-9A-Fa-f]{7}(\s*))*(\|c[0-9A-Fa-f]{7})/g, '$2$3');
+}
 function color(c) {
   return `|c0${c}`;
 }
@@ -251,7 +254,7 @@ class Player {
       makeMessage('chat', {
         msgtype: type,
         tab: _tab,
-        msg: color('FFFFFF') + msgStr + color('FFFFFF') + ' '
+        msg: removeMultiColor(color('FFFFFF') + msgStr + color('FFFFFF') + ' ')
       })
     );
   }
