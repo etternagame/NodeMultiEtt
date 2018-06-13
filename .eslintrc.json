@@ -3,6 +3,7 @@
   "plugins": ["prettier"],
   "rules": {
     "prettier/prettier": ["error"],
-    "no-console": 0
+    "no-console": 0,
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }] // Allow ++, -- in for loops],
   }
 }
