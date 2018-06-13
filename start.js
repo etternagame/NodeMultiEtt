@@ -8,6 +8,7 @@ if ('help' in argv || !('MONGODB_URI' in argv)) {
   console.log('Example: '.bold.blue);
   console.log('node start.js --MONGODB_URI mongodb://localhost:27017/ --DB_NAME etterna\n');
   console.log('Options: '.bold.blue);
+
   const table = new Table({
     head: ['Option'.bold.red, 'Default'.bold.red, 'Example'.bold.red, 'Required'.bold.red]
   });
@@ -20,7 +21,9 @@ if ('help' in argv || !('MONGODB_URI' in argv)) {
     { '--PING_INTERVAL': ['15000', '20000', 'false'] },
     { '--BOT_TOKEN': ['undefined', 'Mg-this-Iz-is.not-DCeFB-a.real-t0ken-qe', 'false'] }
   );
+
   console.log(table.toString());
+
   process.exit();
 }
 
@@ -30,6 +33,7 @@ const LOGPACKETS = argv.LOG_PACKETS || process.env.LOG_PACKETS || true;
 const MONGODB_URI = argv.MONGODB_URI || process.env.MONGODB_URI || '';
 const PING_INTERVAL = argv.PING_INTERVAL || process.env.PING_INTERVAL || 15000;
 const BOT_TOKEN = argv.BOT_TOKEN || process.env.BOT_TOKEN || '';
+
 const server = new Server({
   pingInterval: PING_INTERVAL,
   logPackets: LOGPACKETS,
@@ -38,4 +42,5 @@ const server = new Server({
   mongoDBName: DB_NAME,
   botToken: BOT_TOKEN
 });
+
 server.start();
