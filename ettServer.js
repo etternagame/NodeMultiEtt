@@ -273,6 +273,7 @@ class Server {
     this.port = params.port || 8765;
     this.logPackets = params.logPackets || false;
     this.mongoDBURL = params.mongoDBURL || '';
+    this.mongoDBName = params.mongoDBName || 'ettmulti';
     this.serverName = params.serverName || 'nodeMultiEtt';
     this.pingInterval = params.pingInterval || 15000;
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
@@ -431,7 +432,7 @@ class Server {
       }
       console.log('Reconnected to mongodb');
       // Add new user
-      this.db = client.db('ettmulti');
+      this.db = client.db(this.mongoDBName);
       this.db
         .collection('accounts')
         .insert({ user: newAcc.user, pass: newAcc.pass }, (err, records) => {
@@ -479,7 +480,7 @@ class Server {
         return;
       }
       console.log('Connected to mongodb');
-      this.db = client.db('ettmulti');
+      this.db = client.db(this.mongoDBName);
       const collection = this.db.collection('accounts');
       collection.find().forEach(account => {
         this.accountList.push(account);
