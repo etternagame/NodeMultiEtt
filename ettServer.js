@@ -413,12 +413,16 @@ class Server {
   makeRoomCommands() {
     return {
       free: (player, message, command, params) => {
-        player.room.free = !player.room.free;
-        player.room.sendChat(
-          `${systemPrepend}The room is now ${
-            player.room.free ? '' : 'not '
-          }in free song picking mode`
-        );
+        if (player.room.owner.user != player.user) {
+          player.room.sendChat(`${systemPrepend}You are not room owner.`);
+        } else {
+          player.room.free = !player.room.free;
+          player.room.sendChat(
+            `${systemPrepend}The room is now ${
+              player.room.free ? '' : 'not '
+            }in free song picking mode`
+          );
+        }
       },
       freerate: (player, message, command, params) => {
         player.room.freerate = !player.room.freerate;
