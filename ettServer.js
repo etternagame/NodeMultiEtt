@@ -117,7 +117,8 @@ class Room {
     }
 
     const selectedChart = selectionMode(chart);
-    if (!this.freeRate) {
+
+    if (!this.freerate) {
       selectedChart.rate = chart.rate;
     }
     return selectedChart;
@@ -425,11 +426,15 @@ class Server {
         }
       },
       freerate: (player, message, command, params) => {
-        player.room.freerate = !player.room.freerate;
+        if (player.room.owner.user != player.user) {
+          player.room.sendChat(`${systemPrepend}You are not room owner.`);
+        } else {
+          player.room.freerate = !player.room.freerate;
 
-        player.room.sendChat(
-          `${systemPrepend}The room is now ${player.room.freerate ? '' : 'not'} rate free mode`
-        );
+          player.room.sendChat(
+            `${systemPrepend}The room is now ${player.room.freerate ? '' : 'not'} rate free mode`
+          );
+        }
       },
       selectionMode: (player, message, command, params) => {
         const selectionMode = params[0] ? selectionModes[params[0]] : null;
