@@ -1,4 +1,7 @@
 const express = require('express');
+let bcrypt = require('bcrypt');
+
+const saltRounds = 10;
 
 let SocketServer = null;
 try {
@@ -627,27 +630,30 @@ class Server {
     } else {
       const foundUser = this.accountList.find(x => x.user === message.user);
       if (foundUser) {
-        if (foundUser.pass === message.pass) {
-          // normal login
-          player.user = message.user;
-          player.pass = message.pass;
-          player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
-          player.send(makeMessage('login', { logged: true, msg: '' }));
-        } else {
-          player.send(
-            makeMessage('login', {
-              logged: false,
-              msg: 'username already taken or wrong password'
-            })
-          );
-        }
+        bcrypt.compare(message.pass, foundUser.pass).then(res => {
+          if (res === true) {
+            player.user = message.user;
+            player.pass = message.pass;
+            player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
+            player.send(makeMessage('login', { logged: true, msg: '' }));
+          } else {
+            player.send(
+              makeMessage('login', {
+                logged: false,
+                msg: 'username already taken or wrong password'
+              })
+            );
+          }
+        });
       } else {
         // New account
         player.user = message.user;
-        player.pass = message.pass;
-        this.createAccount(player);
-        player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
-        player.send(makeMessage('login', { logged: true, msg: '' }));
+        bcrypt.hash(message.pass, saltRounds, (err, hash) => {
+          player.pass = hash;
+          this.createAccount(player);
+          player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
+          player.send(makeMessage('login', { logged: true, msg: '' }));
+        });
       }
     }
   }

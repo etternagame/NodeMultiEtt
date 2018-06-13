@@ -11,6 +11,7 @@
   },
   "main": "start.js",
   "dependencies": {
+    "bcrypt": "^2.0.1",
     "discord.js": "^11.3.2",
     "dotenv": "^5.0.1",
     "express": "^4.16.2",
@@ -37,10 +38,7 @@
     "precommit": "lint-staged"
   },
   "lint-staged": {
-    "*.{js,json,md}": [
-      "prettier --write",
-      "git add"
-    ]
+    "*.{js,json,md}": ["prettier --write", "git add"]
   },
   "contributors": [
     {
@@ -54,14 +52,7 @@
       "name": "Fission"
     }
   ],
-  "keywords": [
-    "etterna",
-    "websocket",
-    "server",
-    "game",
-    "multiplayer",
-    "chat"
-  ],
+  "keywords": ["etterna", "websocket", "server", "game", "multiplayer", "chat"],
   "author": "Nicolas Abram Lujan",
   "license": "MIT"
 }
