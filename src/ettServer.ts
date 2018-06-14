@@ -1,4 +1,4 @@
-declare var require: any
+declare var require: any;
 const express = require('express');
 const bcrypt = require('bcrypt');
 const discord = require('discord.js');
@@ -45,11 +45,11 @@ const selectionModes = {
   })
 };
 
-function removeMultiColor(s:string) {
+function removeMultiColor(s: string) {
   return s.replace(/(\|c[0-9A-Fa-f]{7}(\s*))*(\|c[0-9A-Fa-f]{7})/g, '$2$3');
 }
 
-function color(c:string) {
+function color(c: string) {
   return `|c0${c}`;
 }
 
@@ -58,7 +58,7 @@ const ownerColor = 'BBFFBB';
 const playerColor = 'AAFFFF';
 const opColor = 'FFBBBB';
 
-const stringToColour = function(str:string) {
+const stringToColour = function(str: string) {
   let hash = 0;
 
   for (let i = 0; i < str.length; i++) {
@@ -74,7 +74,7 @@ const stringToColour = function(str:string) {
   return colour;
 };
 
-function colorize(string:string, colour = stringToColour(string)) {
+function colorize(string: string, colour = stringToColour(string)) {
   return color(colour) + string + color('FFFFFF');
 }
 
@@ -88,7 +88,19 @@ class Chart {
   difficulty: number;
   rate: number;
   chartkey: string;
-  constructor(message: {title:string,subtitle:string,artist:string,filehash:string,chartkey:string,rate:number,difficulty:number,meter:number}, player: Player) {
+  constructor(
+    message: {
+      title: string;
+      subtitle: string;
+      artist: string;
+      filehash: string;
+      chartkey: string;
+      rate: number;
+      difficulty: number;
+      meter: number;
+    },
+    player: Player
+  ) {
     this.title = message.title;
     this.subtitle = message.subtitle;
     this.artist = message.artist;
@@ -105,7 +117,7 @@ class Room {
   name: string;
   desc: string;
   pass: string;
-  freeRate: boolean;
+  freerate: boolean;
   playing: boolean;
   chart: Chart;
   free: boolean;
@@ -114,7 +126,7 @@ class Room {
   owner: Player;
   ops: string[];
   players: Player[];
-  constructor(_name:string, _desc:string, _pass:string) {
+  constructor(_name: string, _desc: string, _pass: string) {
     this.name = _name;
     this.desc = _desc;
     this.pass = _pass;
@@ -125,11 +137,11 @@ class Room {
     this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
     this.state = 0; // Selecting(0), Playing(1)
     this.chart = null;
-    this.freeRate = false;
+    this.freerate = false;
     this.playing = false;
   }
 
-  serializeChart(chart:Chart = this.chart) {
+  serializeChart(chart: Chart = this.chart) {
     if (!chart) return {};
 
     const selectionMode = selectionModes[this.selectionMode];
@@ -140,13 +152,13 @@ class Room {
 
     const selectedChart = selectionMode(chart);
 
-    if (!this.freeRate) {
+    if (!this.freerate) {
       selectedChart.rate = chart.rate;
     }
     return selectedChart;
   }
 
-  startChart(player:Player, message) {
+  startChart(player: Player, message) {
     let chart = new Chart(message, player);
 
     // Use the selectionMode criteria
@@ -251,9 +263,11 @@ class Room {
 
   changeOwner() {
     if (this.ops.length > 0) {
-      let operatorPlayers = this.players.filter(p=>this.ops.find(opUsername=>opUsername===p.user));
-	  
-	  this.owner = operatorPlayers[Math.floor(Math.random() * operatorPlayers.length)];
+      let operatorPlayers = this.players.filter(p =>
+        this.ops.find(opUsername => opUsername === p.user)
+      );
+
+      this.owner = operatorPlayers[Math.floor(Math.random() * operatorPlayers.length)];
     }
 
     const auxUserList = this.players.filter(pl => pl.user !== this.owner.user);
@@ -264,7 +278,11 @@ class Room {
   }
 
   canSelect(player) {
-    return this.free || player === this.owner || this.ops.some(x => x === player.user);
+    return (
+      this.free ||
+      player === this.owner ||
+      this.ops.some(operatorInList => operatorInList == player.user)
+    );
   }
 
   canStart() {
@@ -366,7 +384,7 @@ class Server {
   roomCommands: object;
   currentRooms: Room[];
   serverName: string;
-  accountList: {user:string,pass:string}[];
+  accountList: { user: string; pass: string }[];
   mongoDBURL: string;
   pingInterval: number;
   logPackets: boolean;
@@ -467,26 +485,32 @@ class Server {
   makeRoomCommands() {
     return {
       free: (player, message, command, params) => {
-        if (player.room.owner.user != player.user) {
-          player.room.sendChat(`${systemPrepend}You are not room owner.`);
-        } else {
+        if (
+          player.room.owner.user == player.user ||
+          player.room.ops.some(operatorInList => operatorInList == player.user)
+        ) {
           player.room.free = !player.room.free;
           player.room.sendChat(
             `${systemPrepend}The room is now ${
               player.room.free ? '' : 'not '
             }in free song picking mode`
           );
+        } else {
+          player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
         }
       },
       freerate: (player, message, command, params) => {
-        if (player.room.owner.user != player.user) {
-          player.room.sendChat(`${systemPrepend}You are not room owner.`);
-        } else {
+        if (
+          player.room.owner.user == player.user ||
+          player.room.ops.some(operatorInList => operatorInList == player.user)
+        ) {
           player.room.freerate = !player.room.freerate;
 
           player.room.sendChat(
             `${systemPrepend}The room is now ${player.room.freerate ? '' : 'not'} rate free mode`
           );
+        } else {
+          player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
         }
       },
       selectionMode: (player, message, command, params) => {
@@ -508,22 +532,22 @@ class Server {
         );
       },
       op: (player, message, command, params) => {
-        if (player.room.owner != player.user) {
-          player.sendChat(0, `${systemPrepend}You're not the room owner!`);
-          return;
-        }
+        if (player.room.owner.user == player.user) {
+          if (!player.room.players.find(x => x.user === params[0])) {
+            player.room.sendChat(`${systemPrepend}${params[0]} is not in the room!`);
+            return;
+          }
 
-        if (!player.room.players.find(x => x.user === params[0])) {
-          player.sendChat(0, `${systemPrepend}${params[0]} is not in the room!`);
-          return;
-        }
-
-        if (!player.room.ops.find(x => x === params[0])) {
-          player.room.ops.push(params[0]);
-          player.room.sendChat(`${systemPrepend}${params[0]} is now a room operator`);
+          if (!player.room.ops.find(x => x === params[0])) {
+            player.room.ops.push(params[0]);
+            player.room.sendChat(`${systemPrepend}${params[0]} is now a room operator`);
+          } else {
+            player.room.ops = player.room.ops.filter(x => x !== params[0]);
+            player.room.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
+          }
         } else {
-          player.room.ops = player.room.ops.filter(x => x !== params[0]);
-          player.room.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
+          player.room.sendChat(`${systemPrepend}You are not the room owner.`);
+          return;
         }
       }
     };
@@ -734,7 +758,7 @@ class Server {
       });
     }, this.pingInterval);
   }
-  
+
   onLogout(player) {
     //TODO
   }
