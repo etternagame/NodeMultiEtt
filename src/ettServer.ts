@@ -45,11 +45,11 @@ const selectionModes = {
   })
 };
 
-function removeMultiColor(s) {
+function removeMultiColor(s:string) {
   return s.replace(/(\|c[0-9A-Fa-f]{7}(\s*))*(\|c[0-9A-Fa-f]{7})/g, '$2$3');
 }
 
-function color(c) {
+function color(c:string) {
   return `|c0${c}`;
 }
 
@@ -58,7 +58,7 @@ const ownerColor = 'BBFFBB';
 const playerColor = 'AAFFFF';
 const opColor = 'FFBBBB';
 
-const stringToColour = function(str) {
+const stringToColour = function(str:string) {
   let hash = 0;
 
   for (let i = 0; i < str.length; i++) {
@@ -74,7 +74,7 @@ const stringToColour = function(str) {
   return colour;
 };
 
-function colorize(string, colour = stringToColour(string)) {
+function colorize(string:string, colour = stringToColour(string)) {
   return color(colour) + string + color('FFFFFF');
 }
 
@@ -114,7 +114,7 @@ class Room {
   owner: Player;
   ops: string[];
   players: Player[];
-  constructor(_name, _desc, _pass) {
+  constructor(_name:string, _desc:string, _pass:string) {
     this.name = _name;
     this.desc = _desc;
     this.pass = _pass;
@@ -129,7 +129,7 @@ class Room {
     this.playing = false;
   }
 
-  serializeChart(chart = this.chart) {
+  serializeChart(chart:Chart = this.chart) {
     if (!chart) return {};
 
     const selectionMode = selectionModes[this.selectionMode];
@@ -146,7 +146,7 @@ class Room {
     return selectedChart;
   }
 
-  startChart(player, message) {
+  startChart(player:Player, message) {
     let chart = new Chart(message, player);
 
     // Use the selectionMode criteria
