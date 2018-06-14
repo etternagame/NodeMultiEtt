@@ -424,7 +424,7 @@ class Server {
     this.discordChannelId = params.channelId || '429399431725580288';
     this.discordGuildId = params.guildId || '339597420239519755';
     this.discordBotToken = params.botToken;
-    this.useDiscord = !!(this.discordChannelId && this.discordGuildId && this.discordBotToken)!==null;
+    this.useDiscord = !!(this.discordChannelId && this.discordGuildId && this.discordBotToken);
 
     if (this.useDiscord) {
       this.discordClient = new discord.Client();
