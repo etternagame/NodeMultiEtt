@@ -1,3 +1,4 @@
+declare var require: any
 const express = require('express');
 const bcrypt = require('bcrypt');
 const discord = require('discord.js');
@@ -78,7 +79,16 @@ function colorize(string, colour = stringToColour(string)) {
 }
 
 class Chart {
-  constructor(message, player) {
+  title: string;
+  subtitle: string;
+  artist: string;
+  filehash: string;
+  pickedBy: string;
+  meter: number;
+  difficulty: number;
+  rate: number;
+  chartkey: string;
+  constructor(message: {title:string,subtitle:string,artist:string,filehash:string,chartkey:string,rate:number,difficulty:number,meter:number}, player: Player) {
     this.title = message.title;
     this.subtitle = message.subtitle;
     this.artist = message.artist;
@@ -92,6 +102,18 @@ class Chart {
 }
 
 class Room {
+  name: string;
+  desc: string;
+  pass: string;
+  freeRate: boolean;
+  playing: boolean;
+  chart: Chart;
+  free: boolean;
+  state: number;
+  selectionMode: number;
+  owner: Player;
+  ops: string[];
+  players: Player[];
   constructor(_name, _desc, _pass) {
     this.name = _name;
     this.desc = _desc;
@@ -118,7 +140,7 @@ class Room {
 
     const selectedChart = selectionMode(chart);
 
-    if (!this.freerate) {
+    if (!this.freeRate) {
       selectedChart.rate = chart.rate;
     }
     return selectedChart;
@@ -157,7 +179,7 @@ class Room {
       `${systemPrepend}${player.user} selected ` +
         colorize(
           `${message.title} (${message.difficulty}: ${message.meter})${
-            message.rate ? ` ${parseFloat(message.rate / 1000).toFixed(2)}` : ''
+            message.rate ? ` ${parseFloat((message.rate / 1000).toFixed(2))}` : ''
           }`,
           stringToColour(message.title)
         )
@@ -229,7 +251,9 @@ class Room {
 
   changeOwner() {
     if (this.ops.length > 0) {
-      this.owner = this.ops[Math.floor(Math.random() * this.ops.length)];
+      let operatorPlayers = this.players.filter(p=>this.ops.find(opUsername=>opUsername===p.user));
+	  
+	  this.owner = operatorPlayers[Math.floor(Math.random() * operatorPlayers.length)];
     }
 
     const auxUserList = this.players.filter(pl => pl.user !== this.owner.user);
@@ -240,7 +264,7 @@ class Room {
   }
 
   canSelect(player) {
-    return this.free || player === this.owner || this.ops.some(x => x.user === player.user);
+    return this.free || player === this.owner || this.ops.some(x => x === player.user);
   }
 
   canStart() {
@@ -270,6 +294,11 @@ class Room {
 }
 
 class Player {
+  user: string;
+  pass: string;
+  ws: any;
+  state: number;
+  room: Room;
   constructor(_user, _pass, _ws) {
     this.user = _user;
     this.pass = _pass;
@@ -325,6 +354,30 @@ class Player {
 }
 
 class Server {
+  playerList: Player[];
+  discordChannel: any;
+  discordChannelId: any;
+  discordGuildId: any;
+  discordBotToken: string;
+  discordClient: any;
+  useDiscord: boolean;
+  wss: any;
+  globalCommands: object;
+  roomCommands: object;
+  currentRooms: Room[];
+  serverName: string;
+  accountList: {user:string,pass:string}[];
+  mongoDBURL: string;
+  pingInterval: number;
+  logPackets: boolean;
+  pingCountToDisconnect: number;
+  messageHandlers: object;
+  dbConnectionFailed: boolean;
+  db: any;
+  mongoDBName: string;
+  connectionFailed: boolean;
+  server: any;
+  port: number;
   constructor(params) {
     // Options
     this.port = params.port || 8765;
@@ -371,7 +424,7 @@ class Server {
     this.discordChannelId = params.channelId || '429399431725580288';
     this.discordGuildId = params.guildId || '339597420239519755';
     this.discordBotToken = params.botToken;
-    this.useDiscord = this.discordChannelId && this.discordGuildId && this.discordBotToken;
+    this.useDiscord = !!(this.discordChannelId && this.discordGuildId && this.discordBotToken)!==null;
 
     if (this.useDiscord) {
       this.discordClient = new discord.Client();
@@ -535,7 +588,7 @@ class Server {
 
       this.db
         .collection('accounts')
-        .insert({ user: newAcc.user, pass: newAcc.pass }, (err, records) => {
+        .insert({ user: player.user, pass: player.pass }, (err, records) => {
           console.log(`Created account for user ${records.ops[0].user}`);
         });
     });
@@ -680,6 +733,10 @@ class Server {
         ws.pingsToAnswer = ws.pingsToAnswer + 1;
       });
     }, this.pingInterval);
+  }
+  
+  onLogout(player) {
+    //TODO
   }
 
   onSelectChart(player, message) {
@@ -996,6 +1053,7 @@ class Server {
   }
 }
 
+declare var module: any;
 module.exports = {
   Server,
   Room,

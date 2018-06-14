@@ -1,5 +1,5 @@
 const argv = require('minimist')(process.argv.slice(2));
-const Server = require('./ettServer.js').Server;
+const Server = require('./built/ettServer.js').Server;
 const Table = require('cli-table');
 const colors = require('colors');
 require('dotenv').load();

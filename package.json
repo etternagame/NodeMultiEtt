@@ -20,6 +20,7 @@
     "minimist": "^1.2.0",
     "mongodb": "^3.0.4",
     "request": "^2.85.0",
+    "typescript": "^2.9.2",
     "uws": "^9.14.0",
     "ws": "^5.0.0"
   },
@@ -34,13 +35,17 @@
     "prettier": "^1.11.1"
   },
   "scripts": {
-    "start": "node start.js",
+    "start": "npm run-script build && node start.js",
     "lint": "eslint **/*.js",
     "format": "prettier --write **/*.{js,json,md}",
-    "precommit": "lint-staged"
+    "precommit": "lint-staged",
+    "build": "node ./node_modules/typescript/bin/tsc"
   },
   "lint-staged": {
-    "*.{js,json,md}": ["prettier --write", "git add"]
+    "*.{js,json,md}": [
+      "prettier --write",
+      "git add"
+    ]
   },
   "contributors": [
     {
@@ -54,7 +59,14 @@
       "name": "Fission"
     }
   ],
-  "keywords": ["etterna", "websocket", "server", "game", "multiplayer", "chat"],
+  "keywords": [
+    "etterna",
+    "websocket",
+    "server",
+    "game",
+    "multiplayer",
+    "chat"
+  ],
   "author": "Nicolas Abram Lujan",
   "license": "MIT"
 }

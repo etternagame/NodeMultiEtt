@@ -1,6 +1,7 @@
 .vscode/
 .env
+built/
 node_modules/
 yarn-error.log
-
+package-lock.json
 \.idea/
