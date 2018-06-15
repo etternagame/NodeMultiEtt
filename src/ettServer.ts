@@ -45,7 +45,9 @@ interface LoginMessage {
 
 type Websocket = any;
 type SocketServer = any;
-type WebSocketClient = any;
+type WebSocketClient = {
+  player: Player;
+};
 type MongoDBClient = any;
 
 try {
@@ -115,7 +117,13 @@ const stringToColour = function(str: string) {
 function colorize(string: string, colour = stringToColour(string)) {
   return color(colour) + string + color('FFFFFF');
 }
-
+interface SerializedRoom {
+  name: string;
+  desc: string;
+  players: string[];
+  pass: boolean;
+  state: number;
+}
 class Chart {
   title: string;
   subtitle: string;
@@ -245,7 +253,7 @@ class Room {
     if (this.chart) player.send(makeMessage('selectchart', { chart: this.serializeChart() }));
   }
 
-  serialize() {
+  serialize(): SerializedRoom {
     return {
       name: this.name,
       desc: this.desc,
@@ -371,7 +379,7 @@ class Player {
     return room;
   }
 
-  sendRoomList(_rooms: Room[]) {
+  sendRoomList(_rooms: SerializedRoom[]) {
     this.send(makeMessage('roomlist', { rooms: _rooms }));
   }
 
@@ -685,7 +693,7 @@ class Server {
   }
 
   resendAllRooms() {
-    const rooms = this.currentRooms.map(r => r.serialize());
+    const rooms: SerializedRoom[] = this.currentRooms.map(r => r.serialize());
     this.wss.clients.forEach((client: WebSocketClient) => {
       client.player.sendRoomList(rooms);
     });
@@ -697,7 +705,7 @@ class Server {
     });
   }
 
-  chatToAll(type: number, message: ChatMessage, _tab: string = '') {
+  chatToAll(type: number, message: string, _tab: string = '') {
     this.wss.clients.forEach((client: WebSocketClient) => {
       client.player.sendChat(type, message, _tab);
     });
