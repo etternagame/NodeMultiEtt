@@ -525,7 +525,7 @@ class Server {
       free: (player: Player, command: string, params: string[]) => {
         if (player.room) {
           if (
-            player.room.owner.user == player.user ||
+            player.room.owner.user === player.user ||
             player.room.ops.some(operatorInList => operatorInList == player.user)
           ) {
             player.room.free = !player.room.free;

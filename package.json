@@ -31,6 +31,8 @@
     "eslint-config-prettier": "^2.9.0",
     "eslint-plugin-import": "^2.9.0",
     "eslint-plugin-prettier": "^2.6.0",
+    "eslint-plugin-typescript": "^0.12.0",
+    "eslint-plugin-unicorn": "^4.0.3",
     "husky": "^0.14.3",
     "lint-staged": "^7.0.0",
     "prettier": "^1.11.1"
@@ -43,10 +45,7 @@
     "build": "node ./node_modules/typescript/bin/tsc"
   },
   "lint-staged": {
-    "*.{js,json,md}": [
-      "prettier --write",
-      "git add"
-    ]
+    "*.{js,json,md}": ["prettier --write", "git add"]
   },
   "contributors": [
     {
@@ -60,14 +59,7 @@
       "name": "Fission"
     }
   ],
-  "keywords": [
-    "etterna",
-    "websocket",
-    "server",
-    "game",
-    "multiplayer",
-    "chat"
-  ],
+  "keywords": ["etterna", "websocket", "server", "game", "multiplayer", "chat"],
   "author": "Nicolas Abram Lujan",
   "license": "MIT"
 }
