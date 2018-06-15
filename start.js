@@ -1,5 +1,5 @@
 const argv = require('minimist')(process.argv.slice(2));
-const Server = require('./built/ettServer.js').Server;
+const ETTServer = require('./built/export.js').Server;
 const Table = require('cli-table');
 const colors = require('colors');
 require('dotenv').load();
@@ -34,13 +34,13 @@ const MONGODB_URI = argv.MONGODB_URI || process.env.MONGODB_URI;
 const PING_INTERVAL = argv.PING_INTERVAL || process.env.PING_INTERVAL || 15000;
 const BOT_TOKEN = argv.BOT_TOKEN || process.env.BOT_TOKEN || '';
 
-const server = new Server({
+const server = new ETTServer({
   pingInterval: PING_INTERVAL,
   logPackets: LOGPACKETS,
   port: PORT,
   mongoDBURL: MONGODB_URI,
   mongoDBName: DB_NAME,
-  botToken: BOT_TOKEN
+  discord: { botToken: BOT_TOKEN }
 });
 
 server.start();
