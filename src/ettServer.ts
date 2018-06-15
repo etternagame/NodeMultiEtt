@@ -157,7 +157,7 @@ class Chart {
   }
 }
 
-class Room {
+export class Room {
   name: string;
   desc: string;
   pass: string;
@@ -355,7 +355,7 @@ class Room {
   }
 }
 
-class Player {
+export class Player {
   user: string;
   pass: string;
   ws: Websocket;
@@ -415,7 +415,7 @@ class Player {
   }
 }
 
-class Server {
+export class Server {
   playerList: Player[];
   discordChannel: any;
   discordChannelId: string;
@@ -1150,10 +1150,3 @@ class Server {
     }
   }
 }
-
-declare var module: any;
-module.exports = {
-  Server,
-  Room,
-  Player
-};
