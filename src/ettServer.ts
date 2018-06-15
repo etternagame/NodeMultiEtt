@@ -43,11 +43,21 @@ interface LoginMessage {
   desc: string;
 }
 
-type Websocket = any;
-type SocketServer = any;
-type WebSocketClient = {
+type Websocket = {
+  terminate: () => any;
+  on: (event: string, f: any) => any;
   player: Player;
+  pingsToAnswer: number;
+  _socket: any;
+  readyState: number;
+  send: (msg: string) => any;
+  msgId: number;
+  tmpaux: (msg: string) => any;
 };
+interface WebSocketServer {
+  clients: { forEach: (f: (c: Websocket) => any) => any };
+  on: any;
+}
 type MongoDBClient = any;
 
 try {
@@ -393,7 +403,7 @@ class Player {
     );
   }
 
-  send(message: { [key: string]: any }) {
+  send(message: GenericMessage) {
     message['id'] = this.ws.msgId;
     this.ws.msgId = this.ws.msgId + 1;
 
@@ -408,12 +418,12 @@ class Player {
 class Server {
   playerList: Player[];
   discordChannel: any;
-  discordChannelId: any;
-  discordGuildId: any;
+  discordChannelId: string;
+  discordGuildId: string;
   discordBotToken: string;
   discordClient: any;
   useDiscord: boolean;
-  wss: SocketServer;
+  wss: WebSocketServer;
   globalCommands: {
     [key: string]: (player: Player, command: string, params: string[]) => any;
   };
@@ -429,10 +439,10 @@ class Server {
   pingCountToDisconnect: number;
   messageHandlers: { [key: string]: (player: Player, message: GenericMessage) => any };
   dbConnectionFailed: boolean = false;
-  db: any;
+  db: MongoDBClient;
   mongoDBName: string;
   connectionFailed: boolean = false;
-  server: any;
+  server: object;
   port: number;
   constructor(params: { [key: string]: any }) {
     // Options
@@ -500,7 +510,7 @@ class Server {
           return;
         }
 
-        serv.wss.clients.forEach((client: WebSocketClient) => {
+        serv.wss.clients.forEach((client: Websocket) => {
           client.player.sendChat(
             0,
             `${colorize('Discord')} (${colorize(msg.author.username, playerColor)}): ${
@@ -653,7 +663,7 @@ class Server {
     if (this.connectionFailed) return;
 
     // Reconnect
-    MongoClient.connect(this.mongoDBURL, (err: string, client: any) => {
+    MongoClient.connect(this.mongoDBURL, (err: string, client: MongoDBClient) => {
       if (err || !client) {
         this.connectionFailed = true;
         console.log(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
@@ -694,19 +704,19 @@ class Server {
 
   resendAllRooms() {
     const rooms: SerializedRoom[] = this.currentRooms.map(r => r.serialize());
-    this.wss.clients.forEach((client: WebSocketClient) => {
+    this.wss.clients.forEach((client: Websocket) => {
       client.player.sendRoomList(rooms);
     });
   }
 
   sendAll(message: GenericMessage) {
-    this.wss.clients.forEach((client: WebSocketClient) => {
+    this.wss.clients.forEach((client: Websocket) => {
       client.player.send(message);
     });
   }
 
   chatToAll(type: number, message: string, _tab: string = '') {
-    this.wss.clients.forEach((client: WebSocketClient) => {
+    this.wss.clients.forEach((client: Websocket) => {
       client.player.sendChat(type, message, _tab);
     });
   }
@@ -964,21 +974,21 @@ class Server {
     this.updateRoomState(player.room);
   }
 
-  onEnterOptions(player: Player, message: any) {
+  onEnterOptions(player: Player, message: GenericMessage) {
     player.state = 3;
     this.updateRoomState(player.room);
   }
 
-  onLeaveOptions(player: Player, message: any) {
+  onLeaveOptions(player: Player, message: GenericMessage) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
-  onEnterEval(player: Player, message: any) {
+  onEnterEval(player: Player, message: GenericMessage) {
     player.state = 2;
     this.updateRoomState(player.room);
   }
 
-  onLeaveEval(player: Player, message: any) {
+  onLeaveEval(player: Player, message: GenericMessage) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
@@ -992,19 +1002,19 @@ class Server {
     }
   }
 
-  onGameOver(player: Player, message: any) {
+  onGameOver(player: Player, message: GenericMessage) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
 
-  onScore(player: Player, message: any) {
+  onScore(player: Player, message: GenericMessage) {
     if (!player.user || !player.room) {
       return;
     }
 
     player.room.send(makeMessage('score', { name: player.user, score: message }));
   }
-  onMissingChart(player: Player, message: any) {
+  onMissingChart(player: Player, message: GenericMessage) {
     if (!player.user || !player.room) return;
     if (player.room) player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
   }
@@ -1053,7 +1063,7 @@ class Server {
     }
   }
 
-  onPing(player: Player, message: any) {
+  onPing(player: Player, message: GenericMessage) {
     if (player.ws.pingsToAnswer > 0) {
       player.ws.pingsToAnswer = player.ws.pingsToAnswer - 1;
     }
@@ -1095,7 +1105,7 @@ class Server {
 
     switch (message.msgtype) {
       case 0: // lobby (everyone)
-        this.wss.clients.forEach((client: WebSocketClient) => {
+        this.wss.clients.forEach((client: Websocket) => {
           client.player.sendChat(0, `${colorize(player.user, playerColor)}: ${message.msg}`);
         });
 

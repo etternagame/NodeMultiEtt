@@ -37,7 +37,7 @@
   },
   "scripts": {
     "start": "npm run-script build && node start.js",
-    "lint": "eslint **/*.js",
+    "lint": "eslint --fix **/*.js",
     "format": "prettier --write **/*.{js,json,md}",
     "precommit": "lint-staged",
     "build": "node ./node_modules/typescript/bin/tsc"
