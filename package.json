@@ -37,7 +37,8 @@
     "eslint-plugin-unicorn": "^4.0.3",
     "husky": "^0.14.3",
     "lint-staged": "^7.0.0",
-    "prettier": "^1.11.1"
+    "prettier": "^1.11.1",
+    "typescript-eslint-parser": "^16.0.0"
   },
   "scripts": {
     "start": "npm run-script build && node start.js",
