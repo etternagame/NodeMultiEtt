@@ -1,7 +1,5 @@
 import * as wsD from 'ws';
 import * as bcrypt from 'bcrypt';
-//bcrypt
-const saltRounds = 10;
 import * as mongodbD from 'mongodb';
 import { Player } from './player';
 import { Chart } from './chart';
@@ -32,7 +30,12 @@ const discord = require('discord.js');
 const path = require('path');
 const MongoClient = require('mongodb').MongoClient;
 const request = require('request');
+
+//bcrypt
+const saltRounds = 10;
+
 let SocketServer: any = null;
+
 try {
   SocketServer = require('uws').Server;
 } catch (e) {
@@ -49,9 +52,11 @@ export interface EWebSocket extends wsD {
   pingsToAnswer: number;
   player: Player;
 }
+
 export interface EWebSocketServer extends wsD.Server {
   clients: Set<EWebSocket>;
 }
+
 export interface ETTHandlers {
   onStartChart: ETTMessage;
   onStartingChart: ETTMessage;
@@ -72,6 +77,7 @@ export interface ETTHandlers {
   onLeaveEval: ETTMessage;
   onEnterEval: ETTMessage;
 }
+
 export interface ETTParams {
   handlers: ETTHandlers | any;
   port: number | null;
@@ -89,6 +95,7 @@ export interface ETTParams {
       }
     | any;
 }
+
 export class ETTServer {
   playerList: Player[];
   discordChannel: any;
