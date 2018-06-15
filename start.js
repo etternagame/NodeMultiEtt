@@ -14,7 +14,13 @@ if ('help' in argv || !('MONGODB_URI' in argv)) {
   });
 
   table.push(
-    { '--MONGODB_URI': ['undefined', 'mongodb://localhost:27017/', 'true'] },
+    {
+      '--MONGODB_URI': [
+        'undefined',
+        'mongodb://localhost:27017/',
+        (!process.env.MONGODB_URI).toString()
+      ]
+    },
     { '--PORT': ['8765', '4655', 'false'] },
     { '--DB_NAME': ['ettmulti', 'myDatabaseName', 'false'] },
     { '--LOGPACKETS': ['true', 'false', 'false'] },
