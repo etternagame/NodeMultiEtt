@@ -14,7 +14,8 @@ import {
   systemPrepend,
   selectionModeDescriptions,
   selectionModes,
-  stringToColour
+  stringToColour,
+  unauthorizedChat
 } from './utils';
 import {
   makeMessage,
@@ -230,7 +231,7 @@ export class ETTServer {
               }in free song picking mode`
             );
           } else {
-            player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
+            unauthorizedChat(player, true);
           }
         } else {
           //TODO
@@ -251,7 +252,7 @@ export class ETTServer {
             `${systemPrepend}The room is now ${player.room.freerate ? '' : 'not'} rate free mode`
           );
         } else {
-          player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
+          unauthorizedChat(player, true);
         }
       },
       selectionMode: (player: Player, command: string, params: string[]) => {
@@ -259,24 +260,29 @@ export class ETTServer {
           //TODO
           return;
         }
-        const selectionMode = params[0] ? selectionModes[+params[0]] : null;
 
-        if (!selectionMode) {
-          player.sendChat(
-            1,
-            `${systemPrepend}Invalid selection mode. Valid ones are:\n
+        if (player.room.owner.user === player.user) {
+          const selectionMode = params[0] ? selectionModes[+params[0]] : null;
+
+          if (!selectionMode) {
+            player.sendChat(
+              1,
+              `${systemPrepend}Invalid selection mode. Valid ones are:\n
               ${JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
-            player.room.name
+              player.room.name
+            );
+          }
+
+          player.room.selectionMode = +params[0];
+
+          player.room.sendChat(
+            `${systemPrepend}The room is now in "${
+              selectionModeDescriptions[+params[0]]
+            }" selection mode`
           );
+        } else {
+          unauthorizedChat(player);
         }
-
-        player.room.selectionMode = +params[0];
-
-        player.room.sendChat(
-          `${systemPrepend}The room is now in "${
-            selectionModeDescriptions[+params[0]]
-          }" selection mode`
-        );
       },
       roll: (player: Player, command: string, params: string[]) => {
         if (params[0]) {
@@ -284,7 +290,9 @@ export class ETTServer {
 
           player.room.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
         } else {
-          player.room.sendChat(`${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 10)}`);
+          player.room.sendChat(
+            `${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 10)}`
+          );
         }
       },
       op: (player: Player, command: string, params: string[]) => {
@@ -306,8 +314,7 @@ export class ETTServer {
             player.room.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
           }
         } else {
-          player.room.sendChat(`${systemPrepend}You are not the room owner.`);
-          return;
+          unauthorizedChat(player);
         }
       }
     };

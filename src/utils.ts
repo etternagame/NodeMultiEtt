@@ -1,4 +1,5 @@
 import { Chart } from './chart';
+import { Player } from './player';
 
 export const selectionModeDescriptions: { [index: number]: string } = {
   0: 'By chartkey',
@@ -23,6 +24,14 @@ export const selectionModes: { [index: number]: (ch: Chart) => object } = {
     filehash: ch.filehash
   })
 };
+
+export function unauthorizedChat(player: Player, operator: boolean = false) {
+  if (operator) {
+    player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
+  } else {
+    player.room.sendChat(`${systemPrepend}You are not room owner`);
+  }
+}
 
 export function removeMultiColor(s: string) {
   return s.replace(/(\|c[0-9A-Fa-f]{7}(\s*))*(\|c[0-9A-Fa-f]{7})/g, '$2$3');
