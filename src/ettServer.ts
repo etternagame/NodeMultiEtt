@@ -271,6 +271,15 @@ export class ETTServer {
           }" selection mode`
         );
       },
+      roll: (player: Player, command: string, params: string[]) => {
+        if (params[0]) {
+          let rolledNumber = Math.floor(Math.random() * (params[0] - 0) + 0);
+
+          player.room.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
+        } else {
+          player.room.sendChat(`${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 10)}`);
+        }
+      },
       op: (player: Player, command: string, params: string[]) => {
         if (!player.room) {
           //TODO
