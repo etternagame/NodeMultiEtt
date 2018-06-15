@@ -8,7 +8,45 @@ const request = require('request');
 
 const saltRounds = 10;
 
-let SocketServer = null;
+let SocketServer: any = null;
+
+interface ChartMessage {
+  title: string;
+  subtitle: string;
+  artist: string;
+  filehash: string;
+  chartkey: string;
+  rate: number;
+  difficulty: number;
+  meter: number;
+}
+
+interface GenericMessage {
+  [key: string]: any;
+}
+
+interface ChatMessage {
+  msg: string;
+  msgtype: number;
+  tab: string;
+  [key: string]: string | number;
+}
+interface RoomMessage {
+  name: string;
+  desc: string;
+  pass: string;
+}
+interface LoginMessage {
+  name: string;
+  pass: string;
+  //Maybe
+  desc: string;
+}
+
+type Websocket = any;
+type SocketServer = any;
+type WebSocketClient = any;
+type MongoDBClient = any;
 
 try {
   SocketServer = require('uws').Server;
@@ -17,19 +55,19 @@ try {
   SocketServer = require('ws').Server;
 }
 
-function makeMessage(type, payload = null) {
+function makeMessage(type: string, payload: object | null = null) {
   return payload ? { type, payload } : { type };
 }
 
-const selectionModeDescriptions = {
+const selectionModeDescriptions: { [index: number]: string } = {
   0: 'By chartkey',
   1: 'By title, subtitle, artist, difficulty meter and filehash',
   2: 'By title, subtitle, artist and filehash'
 };
 
-const selectionModes = {
-  0: ch => ({ chartkey: ch.chartkey }),
-  1: ch => ({
+const selectionModes: { [index: number]: (ch: Chart) => object } = {
+  0: (ch: Chart) => ({ chartkey: ch.chartkey }),
+  1: (ch: Chart) => ({
     title: ch.title,
     subtitle: ch.subtitle,
     artist: ch.artist,
@@ -37,7 +75,7 @@ const selectionModes = {
     meter: ch.meter,
     filehash: ch.filehash
   }),
-  2: ch => ({
+  2: (ch: Chart) => ({
     title: ch.title,
     subtitle: ch.subtitle,
     artist: ch.artist,
@@ -88,19 +126,7 @@ class Chart {
   difficulty: number;
   rate: number;
   chartkey: string;
-  constructor(
-    message: {
-      title: string;
-      subtitle: string;
-      artist: string;
-      filehash: string;
-      chartkey: string;
-      rate: number;
-      difficulty: number;
-      meter: number;
-    },
-    player: Player
-  ) {
+  constructor(message: ChartMessage, player: Player) {
     this.title = message.title;
     this.subtitle = message.subtitle;
     this.artist = message.artist;
@@ -119,19 +145,19 @@ class Room {
   pass: string;
   freerate: boolean;
   playing: boolean;
-  chart: Chart;
+  chart: Chart | null;
   free: boolean;
   state: number;
   selectionMode: number;
   owner: Player;
   ops: string[];
   players: Player[];
-  constructor(_name: string, _desc: string, _pass: string) {
+  constructor(_name: string, _desc: string, _pass: string, _owner: Player) {
     this.name = _name;
     this.desc = _desc;
     this.pass = _pass;
     this.players = [];
-    this.owner = null;
+    this.owner = _owner;
     this.ops = [];
     this.free = false; // free===Anyone can pick
     this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
@@ -141,10 +167,10 @@ class Room {
     this.playing = false;
   }
 
-  serializeChart(chart: Chart = this.chart) {
+  serializeChart(chart: Chart | null = this.chart) {
     if (!chart) return {};
 
-    const selectionMode = selectionModes[this.selectionMode];
+    const selectionMode: (ch: Chart) => any = selectionModes[this.selectionMode];
     if (!selectionMode) {
       this.sendChat(`${systemPrepend}Invalid selection mode`);
       return {};
@@ -158,8 +184,8 @@ class Room {
     return selectedChart;
   }
 
-  startChart(player: Player, message) {
-    let chart = new Chart(message, player);
+  startChart(player: Player, message: ChartMessage) {
+    let chart: Chart = new Chart(message, player);
 
     // Use the selectionMode criteria
     const newChart = this.serializeChart(chart);
@@ -183,7 +209,7 @@ class Room {
     this.playing = true;
   }
 
-  selectChart(player, message) {
+  selectChart(player: Player, message: ChartMessage) {
     this.chart = new Chart(message, player);
 
     this.send(makeMessage('selectchart', { chart: this.serializeChart() }));
@@ -206,7 +232,7 @@ class Room {
     );
   }
 
-  enter(player) {
+  enter(player: Player) {
     player.room = this;
 
     this.players.push(player);
@@ -249,15 +275,15 @@ class Room {
     }
   }
 
-  send(message) {
+  send(message: GenericMessage) {
     this.players.forEach(pl => {
       pl.send(message);
     });
   }
 
-  sendChat(message) {
+  sendChat(chatMessage: string) {
     this.players.forEach(pl => {
-      pl.sendChat(1, message, this.name);
+      pl.sendChat(1, chatMessage, this.name);
     });
   }
 
@@ -277,7 +303,7 @@ class Room {
     }
   }
 
-  canSelect(player) {
+  canSelect(player: Player) {
     return (
       this.free ||
       player === this.owner ||
@@ -286,8 +312,8 @@ class Room {
   }
 
   canStart() {
-    let err = null;
-    let nonReady = [];
+    let err: string | null = null;
+    let nonReady: Player[] = [];
 
     this.players.forEach(pl => {
       if (pl.state !== 0) {
@@ -306,7 +332,7 @@ class Room {
     return err;
   }
 
-  remove(player) {
+  remove(player: Player) {
     this.players = this.players.filter(x => x.user !== player.user);
   }
 }
@@ -314,10 +340,10 @@ class Room {
 class Player {
   user: string;
   pass: string;
-  ws: any;
+  ws: Websocket;
   state: number;
-  room: Room;
-  constructor(_user, _pass, _ws) {
+  room: Room | null;
+  constructor(_user: string, _pass: string, _ws: Websocket) {
     this.user = _user;
     this.pass = _pass;
     this.ws = _ws;
@@ -345,11 +371,11 @@ class Player {
     return room;
   }
 
-  sendRoomList(_rooms) {
+  sendRoomList(_rooms: Room[]) {
     this.send(makeMessage('roomlist', { rooms: _rooms }));
   }
 
-  sendChat(type, msgStr, _tab = '') {
+  sendChat(type: number, msgStr: string, _tab: string = '') {
     this.send(
       makeMessage('chat', {
         msgtype: type,
@@ -359,8 +385,8 @@ class Player {
     );
   }
 
-  send(message) {
-    message.id = this.ws.msgId;
+  send(message: { [key: string]: any }) {
+    message['id'] = this.ws.msgId;
     this.ws.msgId = this.ws.msgId + 1;
 
     this.ws.send(JSON.stringify(message));
@@ -379,9 +405,13 @@ class Server {
   discordBotToken: string;
   discordClient: any;
   useDiscord: boolean;
-  wss: any;
-  globalCommands: object;
-  roomCommands: object;
+  wss: SocketServer;
+  globalCommands: {
+    [key: string]: (player: Player, command: string, params: string[]) => any;
+  };
+  roomCommands: {
+    [key: string]: (player: Player, command: string, params: string[]) => any;
+  };
   currentRooms: Room[];
   serverName: string;
   accountList: { user: string; pass: string }[];
@@ -389,14 +419,14 @@ class Server {
   pingInterval: number;
   logPackets: boolean;
   pingCountToDisconnect: number;
-  messageHandlers: object;
-  dbConnectionFailed: boolean;
+  messageHandlers: { [key: string]: (player: Player, message: GenericMessage) => any };
+  dbConnectionFailed: boolean = false;
   db: any;
   mongoDBName: string;
-  connectionFailed: boolean;
+  connectionFailed: boolean = false;
   server: any;
   port: number;
-  constructor(params) {
+  constructor(params: { [key: string]: any }) {
     // Options
     this.port = params.port || 8765;
     this.logPackets = params.logPackets || false;
@@ -457,12 +487,12 @@ class Server {
           .channels.get(serv.discordChannelId);
       });
 
-      this.discordClient.on('message', msg => {
+      this.discordClient.on('message', (msg: GenericMessage) => {
         if (msg.channel.id !== serv.discordChannelId || msg.author.bot) {
           return;
         }
 
-        serv.wss.clients.forEach(client => {
+        serv.wss.clients.forEach((client: WebSocketClient) => {
           client.player.sendChat(
             0,
             `${colorize('Discord')} (${colorize(msg.author.username, playerColor)}): ${
@@ -476,7 +506,7 @@ class Server {
 
   makeGlobalCommands() {
     return {
-      pm: (player, message, command, params) => {
+      pm: (player: Player, command: string, params: string[]) => {
         this.pm(player, params[0], params.slice(1).join(' '));
       }
     };
@@ -484,22 +514,30 @@ class Server {
 
   makeRoomCommands() {
     return {
-      free: (player, message, command, params) => {
-        if (
-          player.room.owner.user == player.user ||
-          player.room.ops.some(operatorInList => operatorInList == player.user)
-        ) {
-          player.room.free = !player.room.free;
-          player.room.sendChat(
-            `${systemPrepend}The room is now ${
-              player.room.free ? '' : 'not '
-            }in free song picking mode`
-          );
+      free: (player: Player, command: string, params: string[]) => {
+        if (player.room) {
+          if (
+            player.room.owner.user == player.user ||
+            player.room.ops.some(operatorInList => operatorInList == player.user)
+          ) {
+            player.room.free = !player.room.free;
+            player.room.sendChat(
+              `${systemPrepend}The room is now ${
+                player.room.free ? '' : 'not '
+              }in free song picking mode`
+            );
+          } else {
+            player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
+          }
         } else {
-          player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
+          //TODO
         }
       },
-      freerate: (player, message, command, params) => {
+      freerate: (player: Player, command: string, params: string[]) => {
+        if (!player.room) {
+          //TODO
+          return;
+        }
         if (
           player.room.owner.user == player.user ||
           player.room.ops.some(operatorInList => operatorInList == player.user)
@@ -513,25 +551,35 @@ class Server {
           player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
         }
       },
-      selectionMode: (player, message, command, params) => {
-        const selectionMode = params[0] ? selectionModes[params[0]] : null;
+      selectionMode: (player: Player, command: string, params: string[]) => {
+        if (!player.room) {
+          //TODO
+          return;
+        }
+        const selectionMode = params[0] ? selectionModes[+params[0]] : null;
 
         if (!selectionMode) {
           player.sendChat(
+            1,
             `${systemPrepend}Invalid selection mode. Valid ones are:\n
-              ${JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`
+              ${JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
+            player.room.name
           );
         }
 
-        player.room.selectionMode = params[0];
+        player.room.selectionMode = +params[0];
 
         player.room.sendChat(
           `${systemPrepend}The room is now in "${
-            selectionModeDescriptions[params[0]]
+            selectionModeDescriptions[+params[0]]
           }" selection mode`
         );
       },
-      op: (player, message, command, params) => {
+      op: (player: Player, command: string, params: string[]) => {
+        if (!player.room) {
+          //TODO
+          return;
+        }
         if (player.room.owner.user == player.user) {
           if (!player.room.players.find(x => x.user === params[0])) {
             player.room.sendChat(`${systemPrepend}${params[0]} is not in the room!`);
@@ -553,29 +601,28 @@ class Server {
     };
   }
 
-  addRoom(message, creator) {
-    const room = new Room(message.name, message.desc, message.pass);
+  addRoom(message: RoomMessage, creator: Player) {
+    const room = new Room(message.name, message.desc, message.pass, creator);
 
     this.currentRooms.push(room);
     room.players.push(creator);
 
-    room.owner = creator;
     creator.room = room;
 
     this.sendAll(makeMessage('newroom', { room: room.serialize() }));
-    this.updateRoomStatus(room);
+    this.updateRoomState(room);
 
     return room;
   }
 
-  addPlayer(_user, _pass, _ws) {
+  addPlayer(_user: string, _pass: string, _ws: Websocket) {
     const player = new Player(_user, _pass, _ws);
     this.playerList.push(player);
 
     return player;
   }
 
-  removePlayer(player) {
+  removePlayer(player: Player) {
     this.leaveRoom(player);
     this.playerList = this.playerList.filter(x => x.user !== player.user);
 
@@ -584,11 +631,11 @@ class Server {
     player.room = null;
   }
 
-  createAccount(player) {
+  createAccount(player: Player) {
     if (this.db) {
       this.db
         .collection('accounts')
-        .insert({ user: player.user, pass: player.pass }, (err, records) => {
+        .insert({ user: player.user, pass: player.pass }, (err: any, records: any) => {
           console.log(`Created account for user ${records.ops[0].user}`);
         });
       return;
@@ -598,7 +645,7 @@ class Server {
     if (this.connectionFailed) return;
 
     // Reconnect
-    MongoClient.connect(this.mongoDBURL, (err, client) => {
+    MongoClient.connect(this.mongoDBURL, (err: string, client: any) => {
       if (err || !client) {
         this.connectionFailed = true;
         console.log(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
@@ -612,13 +659,13 @@ class Server {
 
       this.db
         .collection('accounts')
-        .insert({ user: player.user, pass: player.pass }, (err, records) => {
+        .insert({ user: player.user, pass: player.pass }, (err: string, records: any) => {
           console.log(`Created account for user ${records.ops[0].user}`);
         });
     });
   }
 
-  leaveRoom(player) {
+  leaveRoom(player: Player) {
     const room = player.leaveRoom();
 
     if (room) {
@@ -631,7 +678,7 @@ class Server {
       } else {
         // send notice to players in room that someone left
         room.sendChat(`${systemPrepend}${player.user} left`);
-        this.updateRoomStatus(room);
+        this.updateRoomState(room);
       }
       player.sendChat(0, `${systemPrepend}Left room ${room.name}`);
     }
@@ -639,25 +686,25 @@ class Server {
 
   resendAllRooms() {
     const rooms = this.currentRooms.map(r => r.serialize());
-    this.wss.clients.forEach(client => {
+    this.wss.clients.forEach((client: WebSocketClient) => {
       client.player.sendRoomList(rooms);
     });
   }
 
-  sendAll(message) {
-    this.wss.clients.forEach(client => {
+  sendAll(message: GenericMessage) {
+    this.wss.clients.forEach((client: WebSocketClient) => {
       client.player.send(message);
     });
   }
 
-  chatToAll(type, message, _tab = '') {
-    this.wss.clients.forEach(client => {
+  chatToAll(type: number, message: ChatMessage, _tab: string = '') {
+    this.wss.clients.forEach((client: WebSocketClient) => {
       client.player.sendChat(type, message, _tab);
     });
   }
 
   loadAccounts() {
-    MongoClient.connect(this.mongoDBURL, (err, client) => {
+    MongoClient.connect(this.mongoDBURL, (err: string, client: MongoDBClient) => {
       if (err || !client) {
         this.dbConnectionFailed = true;
         console.log(`mongodb connection failed to ${this.mongoDBURL} error: ${err}`);
@@ -669,7 +716,7 @@ class Server {
       this.db = client.db(this.mongoDBName);
       const collection = this.db.collection('accounts');
 
-      collection.find().forEach(account => {
+      collection.find().forEach((account: { user: string; pass: string }) => {
         this.accountList.push(account);
       });
     });
@@ -680,12 +727,12 @@ class Server {
     this.dbConnectionFailed = false;
     this.loadAccounts();
 
-    this.wss.on('connection', ws => {
+    this.wss.on('connection', (ws: Websocket) => {
       ws.tmpaux = ws.send;
 
       // If I don't check readystate sometimes it crashes
       if (this.logPackets) {
-        ws.send = str => {
+        ws.send = (str: string) => {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
             console.log(`out: ${str}`);
@@ -694,7 +741,7 @@ class Server {
           }
         };
       } else {
-        ws.send = str => {
+        ws.send = (str: string) => {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
           } else {
@@ -723,12 +770,12 @@ class Server {
         this.removePlayer(ws.player);
       });
 
-      ws.on('message', message => {
+      ws.on('message', (strMessage: string) => {
         if (this.logPackets) {
-          console.log(`in: ${message}`);
+          console.log(`in: ${strMessage}`);
         }
 
-        message = JSON.parse(message);
+        let message = JSON.parse(strMessage);
         const handler = this.messageHandlers[message.type];
 
         if (handler) {
@@ -741,7 +788,7 @@ class Server {
 
   startPinging() {
     setInterval(() => {
-      this.wss.clients.forEach(ws => {
+      this.wss.clients.forEach((ws: Websocket) => {
         if (ws.pingsToAnswer >= this.pingCountToDisconnect) {
           console.log(
             `Terminating connection(${ws._socket.remoteAddress}) because ping was not answered`
@@ -759,12 +806,16 @@ class Server {
     }, this.pingInterval);
   }
 
-  onLogout(player) {
+  onLogout(player: Player) {
     //TODO
   }
 
-  onSelectChart(player, message) {
-    if (!player.room || !player.room.canSelect(player)) {
+  onSelectChart(player: Player, message: ChartMessage) {
+    if (!player.room) {
+      player.sendChat(0, `${systemPrepend}You're not in a room`);
+      return;
+    }
+    if (!player.room.canSelect(player)) {
       player.sendChat(
         1,
         `${systemPrepend}You don't have the rights to select a chart!`,
@@ -775,7 +826,11 @@ class Server {
     player.room.selectChart(player, message);
   }
 
-  onStartChart(player, message) {
+  onStartChart(player: Player, message: ChartMessage) {
+    if (!player.room) {
+      player.sendChat(0, `${systemPrepend}You're not in a room`);
+      return;
+    }
     if (!player.room || !player.room.canSelect(player)) {
       player.sendChat(
         1,
@@ -796,7 +851,7 @@ class Server {
     }
   }
 
-  onLogin(player, message) {
+  onLogin(player: Player, message: GenericMessage) {
     if (!message.user || !message.pass) {
       player.send(
         makeMessage('login', { logged: false, msg: 'Missing/Empty username or password' })
@@ -834,7 +889,7 @@ class Server {
           url: 'https://api.etternaonline.com/v1/login',
           form: { username: message.user, password: message.pass }
         },
-        (error, response, body) => {
+        (error: any, response: { statusCode: number }, body: string) => {
           if (response && response.statusCode == 200) {
             if (JSON.parse(body).success === 'Valid') {
               player.user = message.user;
@@ -859,7 +914,7 @@ class Server {
       const foundUser = this.accountList.find(x => x.user === message.user);
 
       if (foundUser) {
-        bcrypt.compare(message.pass, foundUser.pass).then(res => {
+        bcrypt.compare(message.pass, foundUser.pass).then((res: boolean) => {
           if (res === true) {
             player.user = message.user;
             player.pass = message.pass;
@@ -877,7 +932,7 @@ class Server {
       } else {
         // New account
         player.user = message.user;
-        bcrypt.hash(message.pass, saltRounds, (err, hash) => {
+        bcrypt.hash(message.pass, saltRounds, (err: string, hash: string) => {
           player.pass = hash;
           this.createAccount(player);
           player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
@@ -887,66 +942,66 @@ class Server {
     }
   }
 
-  onLeaveRoom(player, message) {
+  onLeaveRoom(player: Player, message: RoomMessage) {
     if (!player.user) {
       return;
     }
     this.leaveRoom(player);
   }
 
-  onHasChart(player, message) {}
+  onHasChart(player: Player, message: ChartMessage) {}
 
-  onStartingChart(player, message) {
+  onStartingChart(player: Player, message: ChartMessage) {
     player.state = 1;
-    this.updateRoomStatus(player.room);
+    this.updateRoomState(player.room);
   }
 
-  onEnterOptions(player, message) {
+  onEnterOptions(player: Player, message: any) {
     player.state = 3;
-    this.updateRoomStatus(player.room);
+    this.updateRoomState(player.room);
   }
 
-  onLeaveOptions(player, message) {
+  onLeaveOptions(player: Player, message: any) {
     player.state = 0;
-    this.updateRoomStatus(player.room);
+    this.updateRoomState(player.room);
   }
-  onEnterEval(player, message) {
+  onEnterEval(player: Player, message: any) {
     player.state = 2;
-    this.updateRoomStatus(player.room);
+    this.updateRoomState(player.room);
   }
 
-  onLeaveEval(player, message) {
+  onLeaveEval(player: Player, message: any) {
     player.state = 0;
-    this.updateRoomStatus(player.room);
+    this.updateRoomState(player.room);
   }
 
-  updateRoomStatus(room) {
+  updateRoomState(room: Room | null) {
     if (!room) return;
-    let oldStatus = room.status;
+    let oldState = room.state;
     room.updateStatus();
-    if (oldStatus !== room.status) {
+    if (oldState !== room.state) {
       this.sendAll(makeMessage('updateroom', { room: room.serialize() }));
     }
   }
 
-  onGameOver(player, message) {
+  onGameOver(player: Player, message: any) {
     player.state = 0;
-    this.updateRoomStatus(player.room);
+    this.updateRoomState(player.room);
   }
 
-  onScore(player, message) {
+  onScore(player: Player, message: any) {
     if (!player.user || !player.room) {
       return;
     }
 
     player.room.send(makeMessage('score', { name: player.user, score: message }));
   }
-  onMissingChart(player, message) {
+  onMissingChart(player: Player, message: any) {
     if (!player.user || !player.room) return;
     if (player.room) player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
   }
 
-  onCreateRoom(player, message) {
+  onCreateRoom(player: Player, message: RoomMessage) {
     if (!player.user) {
       return;
     }
@@ -964,12 +1019,12 @@ class Server {
     }
   }
 
-  enterRoom(player, room) {
+  enterRoom(player: Player, room: Room) {
     room.enter(player);
     this.sendAll(makeMessage('updateroom', { room: room.serialize() }));
   }
 
-  onEnterRoom(player, message) {
+  onEnterRoom(player: Player, message: LoginMessage) {
     if (!player.user) {
       return;
     }
@@ -990,17 +1045,17 @@ class Server {
     }
   }
 
-  onPing(player, message) {
+  onPing(player: Player, message: any) {
     if (player.ws.pingsToAnswer > 0) {
       player.ws.pingsToAnswer = player.ws.pingsToAnswer - 1;
     }
   }
 
-  onCommand(player, message, commandName, params) {
+  onCommand(player: Player, message: GenericMessage, commandName: string, params: string[]) {
     if (player.room) {
       let command = this.roomCommands[commandName];
       if (command) {
-        command(player, message, command, params);
+        command(player, commandName, params);
         return true;
       }
     }
@@ -1008,13 +1063,13 @@ class Server {
     let command = this.globalCommands[commandName];
 
     if (command) {
-      command(player, message, command, params);
+      command(player, commandName, params);
       return true;
     }
     return false;
   }
 
-  onChat(player, message) {
+  onChat(player: Player, message: ChatMessage) {
     if (!player.user) {
       return;
     }
@@ -1032,7 +1087,7 @@ class Server {
 
     switch (message.msgtype) {
       case 0: // lobby (everyone)
-        this.wss.clients.forEach(client => {
+        this.wss.clients.forEach((client: WebSocketClient) => {
           client.player.sendChat(0, `${colorize(player.user, playerColor)}: ${message.msg}`);
         });
 
@@ -1046,14 +1101,15 @@ class Server {
           player.sendChat(1, `${systemPrepend}You're not in the room ${message.tab}`, message.tab);
           return;
         }
-        player.room.players.forEach(pl => {
+        let r = player.room;
+        player.room.players.forEach((pl: Player) => {
           pl.sendChat(
             1,
             `${colorize(
               player.user,
-              player.user === player.room.owner
+              player.user === r.owner.user
                 ? ownerColor
-                : player.room.ops.find(x => x === player.user) ? opColor : playerColor
+                : r.ops.find((x: string) => x === player.user) ? opColor : playerColor
             )}: ${message.msg}`,
             message.tab
           );
@@ -1066,7 +1122,7 @@ class Server {
     }
   }
 
-  pm(player, receptorName, msg) {
+  pm(player: Player, receptorName: string, msg: string) {
     const playerToSendTo = this.playerList.find(x => x.user === receptorName);
     if (!playerToSendTo) {
       player.sendChat(0, `${systemPrepend}Could not find user ${receptorName}`);
