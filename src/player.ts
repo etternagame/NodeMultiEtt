@@ -65,7 +65,7 @@ export class Player {
       makeMessage('chat', {
         msgtype: type,
         tab: _tab,
-        msg: removeMultiColor(`${color('FFFFFF')} ${msgStr} ${color('FFFFFF')} `)
+        msg: removeMultiColor(`${color('FFFFFF')} ${msgStr}`)
       })
     );
   }
