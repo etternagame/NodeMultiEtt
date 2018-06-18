@@ -8,6 +8,7 @@ import {
   ChatMessage,
   RoomMessage
 } from './messages';
+
 import {
   color,
   colorize,

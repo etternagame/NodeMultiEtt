@@ -1,4 +1,6 @@
 import { Room } from './room';
+import { Player } from './player';
+
 import {
   makeMessage,
   ChartMessage,
@@ -7,7 +9,7 @@ import {
   ChatMessage,
   RoomMessage
 } from './messages';
-import { Player } from './player';
+
 export class Chart {
   title: string;
   subtitle: string;

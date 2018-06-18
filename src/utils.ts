@@ -1,5 +1,6 @@
 import { Chart } from './chart';
 import { Player } from './player';
+import { Room } from './room';
 
 export const selectionModeDescriptions: { [index: number]: string } = {
   0: 'By chartkey',
@@ -26,10 +27,14 @@ export const selectionModes: { [index: number]: (ch: Chart) => object } = {
 };
 
 export function unauthorizedChat(player: Player, operator: boolean = false) {
-  if (operator) {
-    player.room.sendChat(`${systemPrepend}You are not room owner or operator.`);
+  if (!player.room) {
+    // TODO
+    // The player is not in a room, but managed to instance a room command - idk how you
+    // would want to deal with this.
+  } else if (operator) {
+    player.sendChat(1, `${systemPrepend}You are not room owner or operator.`, player.room.name);
   } else {
-    player.room.sendChat(`${systemPrepend}You are not room owner`);
+    player.sendChat(1, `${systemPrepend}You are not room owner`, player.room.name);
   }
 }
 
