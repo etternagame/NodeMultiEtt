@@ -736,6 +736,11 @@ export class ETTServer {
       return;
     }
 
+    if (!message.name) {
+      player.sendChat(0, `${systemPrepend}Cannot use empty room name`);
+      return;
+    }
+
     this.leaveRoom(player);
     const existingRoom = this.currentRooms.find(x => x.name === message.name);
 
