@@ -19,7 +19,8 @@ import {
   systemPrepend,
   selectionModeDescriptions,
   selectionModes,
-  stringToColour
+  stringToColour,
+  unauthorizedChat
 } from './utils';
 
 export interface SerializedRoom {
@@ -224,5 +225,109 @@ export class Room {
 
   remove(player: Player) {
     this.players = this.players.filter(x => x.user !== player.user);
+  }
+
+  static freeMode(player: Player, command: string, params: string[]) {
+    if (player.room) {
+      if (
+        player.room.owner.user === player.user ||
+        player.room.ops.some(operatorInList => operatorInList == player.user)
+      ) {
+        player.room.free = !player.room.free;
+        player.room.sendChat(
+          `${systemPrepend}The room is now ${
+            player.room.free ? '' : 'not '
+          }in free song picking mode`
+        );
+      } else {
+        unauthorizedChat(player, true);
+      }
+    } else {
+      //TODO
+    }
+  }
+
+  static freeRate(player: Player, command: string, params: string[]) {
+    if (!player.room) {
+      //TODO
+      return;
+    }
+    if (
+      player.room.owner.user == player.user ||
+      player.room.ops.some(operatorInList => operatorInList == player.user)
+    ) {
+      player.room.freerate = !player.room.freerate;
+
+      player.room.sendChat(
+        `${systemPrepend}The room is now ${player.room.freerate ? '' : 'not'} rate free mode`
+      );
+    } else {
+      unauthorizedChat(player, true);
+    }
+  }
+
+  static selectionMode(player: Player, command: string, params: string[]) {
+    if (!player.room) {
+      //TODO
+      return;
+    }
+
+    if (player.room.owner.user === player.user) {
+      const selectionMode = params[0] ? selectionModes[+params[0]] : null;
+
+      if (!selectionMode) {
+        player.sendChat(
+          1,
+          `${systemPrepend}Invalid selection mode. Valid ones are:\n
+              ${JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
+          player.room.name
+        );
+      }
+
+      player.room.selectionMode = +params[0];
+
+      player.room.sendChat(
+        `${systemPrepend}The room is now in "${
+          selectionModeDescriptions[+params[0]]
+        }" selection mode`
+      );
+    } else {
+      unauthorizedChat(player);
+    }
+  }
+
+  static roll(player: Player, command: string, params: string[]) {
+    if (params[0]) {
+      let rolledNumber = Math.floor(Math.random() * (params[0] - 0) + 0);
+
+      player.room.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
+    } else {
+      player.room.sendChat(
+        `${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 10)}`
+      );
+    }
+  }
+
+  static op(player: Player, command: string, params: string[]) {
+    if (!player.room) {
+      //TODO
+      return;
+    }
+    if (player.room.owner.user === player.user) {
+      if (!player.room.players.find(x => x.user === params[0])) {
+        player.room.sendChat(`${systemPrepend}${params[0]} is not in the room!`);
+        return;
+      }
+
+      if (!player.room.ops.find(x => x === params[0])) {
+        player.room.ops.push(params[0]);
+        player.room.sendChat(`${systemPrepend}${params[0]} is now a room operator`);
+      } else {
+        player.room.ops = player.room.ops.filter(x => x !== params[0]);
+        player.room.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
+      }
+    } else {
+      unauthorizedChat(player);
+    }
   }
 }
