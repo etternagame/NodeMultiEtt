@@ -1,6 +1,5 @@
 import { Chart } from './chart';
 import { Player } from './player';
-import { Room } from './room';
 
 export const selectionModeDescriptions: { [index: number]: string } = {
   0: 'By chartkey',

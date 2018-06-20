@@ -1,26 +1,10 @@
 import { EWebSocket } from './ettServer';
-import { Chart } from './chart';
+
 import { Room, SerializedRoom } from './room';
-import {
-  makeMessage,
-  ChartMessage,
-  GenericMessage,
-  LoginMessage,
-  ChatMessage,
-  RoomMessage
-} from './messages';
-import {
-  color,
-  colorize,
-  opColor,
-  ownerColor,
-  playerColor,
-  removeMultiColor,
-  systemPrepend,
-  selectionModeDescriptions,
-  selectionModes,
-  stringToColour
-} from './utils';
+
+import { makeMessage, GenericMessage } from './messages';
+
+import { color, removeMultiColor } from './utils';
 
 export class Player {
   user: string;

@@ -1,21 +1,11 @@
 import { Chart } from './chart';
 import { Player } from './player';
-import {
-  makeMessage,
-  ChartMessage,
-  GenericMessage,
-  LoginMessage,
-  ChatMessage,
-  RoomMessage
-} from './messages';
+
+import { makeMessage, ChartMessage, GenericMessage } from './messages';
 
 import {
-  color,
   colorize,
-  opColor,
-  ownerColor,
   playerColor,
-  removeMultiColor,
   systemPrepend,
   selectionModeDescriptions,
   selectionModes,
@@ -30,6 +20,7 @@ export interface SerializedRoom {
   pass: boolean;
   state: number;
 }
+
 export class Room {
   name: string;
   desc: string;

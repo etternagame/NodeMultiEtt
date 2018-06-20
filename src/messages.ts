@@ -23,14 +23,16 @@ export interface ChatMessage {
   tab: string;
   [key: string]: string | number;
 }
+
 export interface RoomMessage {
   name: string;
   desc: string;
   pass: string;
 }
+
 export interface LoginMessage {
   name: string;
   pass: string;
-  //Maybe
+  // Maybe
   desc: string;
 }

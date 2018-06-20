@@ -2,37 +2,18 @@ import * as wsD from 'ws';
 import * as bcrypt from 'bcrypt';
 import * as mongodbD from 'mongodb';
 import { Player } from './player';
-import { Chart } from './chart';
-import { Room, SerializedRoom } from './room';
-import {
-  color,
-  colorize,
-  opColor,
-  ownerColor,
-  playerColor,
-  removeMultiColor,
-  systemPrepend,
-  selectionModeDescriptions,
-  selectionModes,
-  stringToColour,
-  unauthorizedChat
-} from './utils';
-import {
-  makeMessage,
-  ChartMessage,
-  GenericMessage,
-  LoginMessage,
-  ChatMessage,
-  RoomMessage
-} from './messages';
+
+import { Room } from './room';
+
+import { colorize, opColor, ownerColor, playerColor, systemPrepend } from './utils';
+
+import { makeMessage } from './messages';
 
 const express = require('express');
 const discord = require('discord.js');
-const path = require('path');
-const MongoClient = require('mongodb').MongoClient;
 const request = require('request');
 
-//bcrypt
+// Bcrypt default salt rounds
 const saltRounds = 10;
 
 let SocketServer: any = null;
