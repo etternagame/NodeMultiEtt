@@ -218,6 +218,9 @@ export class ETTServer {
 
   makeRoomCommands() {
     return {
+      shrug: (player: Player, command: string, params: string[]) => {
+        Room.playerShrugs(player, command, params);
+      },
       free: (player: Player, command: string, params: string[]) => {
         Room.freeMode(player, command, params);
       },
@@ -704,7 +707,7 @@ export class ETTServer {
 
   onCommand(player: Player, message: GenericMessage, commandName: string, params: string[]) {
     if (player.room) {
-      let command = this.roomCommands[commandName];
+      let command = this.roomCommands[commandName.toLocaleLowerCase()];
       if (command) {
         command(player, commandName, params);
         return true;

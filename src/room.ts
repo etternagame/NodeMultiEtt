@@ -330,4 +330,8 @@ export class Room {
       unauthorizedChat(player);
     }
   }
+
+  static playerShrugs(player: Player, command: string, params: string[]) {
+    player.room.sendChat(`${colorize(player.user, playerColor)}: ¯\\_(ツ)_/¯`);
+  }
 }
