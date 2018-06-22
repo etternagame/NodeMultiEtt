@@ -34,6 +34,9 @@ export class Room {
   owner: Player;
   ops: string[];
   players: Player[];
+  timerInterval: any;
+  countdown: boolean;
+  timerLimit: number;
   constructor(_name: string, _desc: string, _pass: string, _owner: Player) {
     this.name = _name;
     this.desc = _desc;
@@ -42,11 +45,14 @@ export class Room {
     this.owner = _owner;
     this.ops = [];
     this.free = false; // free===Anyone can pick
+    this.countdown = false; // No countdown before song start
     this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
     this.state = 0; // Selecting(0), Playing(1)
     this.chart = null;
     this.freerate = false;
     this.playing = false;
+    this.timerInterval = 0;
+    this.timerLimit = 0;
   }
 
   serializeChart(chart: Chart | null = this.chart) {
@@ -67,28 +73,55 @@ export class Room {
   }
 
   startChart(player: Player, message: ChartMessage) {
-    let chart: Chart = new Chart(message, player);
+    if (this.countdown === true) {
+      this.startTimer(this.timerLimit).then(() => {
+        let chart: Chart = new Chart(message, player);
 
-    // Use the selectionMode criteria
-    const newChart = this.serializeChart(chart);
-    const oldChart = this.serializeChart(this.chart);
+        // Use the selectionMode criteria
+        const newChart = this.serializeChart(chart);
+        const oldChart = this.serializeChart(this.chart);
 
-    if (
-      !this.chart ||
-      player.user !== this.chart.pickedBy ||
-      JSON.stringify(newChart) !== JSON.stringify(oldChart)
-    ) {
-      this.selectChart(player, message);
-      return;
+        if (
+          !this.chart ||
+          player.user !== this.chart.pickedBy ||
+          JSON.stringify(newChart) !== JSON.stringify(oldChart)
+        ) {
+          this.selectChart(player, message);
+          return;
+        }
+
+        this.chart = chart;
+        this.state = 1;
+
+        this.send(makeMessage('startchart', { chart: newChart }));
+        this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
+
+        this.playing = true;
+      });
+    } else {
+      let chart: Chart = new Chart(message, player);
+
+      // Use the selectionMode criteria
+      const newChart = this.serializeChart(chart);
+      const oldChart = this.serializeChart(this.chart);
+
+      if (
+        !this.chart ||
+        player.user !== this.chart.pickedBy ||
+        JSON.stringify(newChart) !== JSON.stringify(oldChart)
+      ) {
+        this.selectChart(player, message);
+        return;
+      }
+
+      this.chart = chart;
+      this.state = 1;
+
+      this.send(makeMessage('startchart', { chart: newChart }));
+      this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
+
+      this.playing = true;
     }
-
-    this.chart = chart;
-    this.state = 1;
-
-    this.send(makeMessage('startchart', { chart: newChart }));
-    this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
-
-    this.playing = true;
   }
 
   selectChart(player: Player, message: ChartMessage) {
@@ -324,5 +357,42 @@ export class Room {
 
   static playerShrugs(player: Player, command: string, params: string[]) {
     player.room.sendChat(`${colorize(player.user, playerColor)}: ¯\\_(ツ)_/¯`);
+  }
+
+  startTimer(limit: number) {
+    return new Promise((resolve, reject) => {
+      let currentTimer: number = limit;
+
+      this.timerInterval = setInterval(() => {
+        this.sendChat(`${systemPrepend}Starting in ${currentTimer} seconds`);
+
+        currentTimer -= 1;
+        if (currentTimer === 0) {
+          this.sendChat(`${systemPrepend}Starting song in ${currentTimer} seconds`);
+          clearInterval(this.timerInterval);
+          resolve(true);
+        }
+      }, 1000);
+    });
+  }
+
+  static stopTimer(player: Player) {
+    player.room.sendChat(`${systemPrepend}Song start cancelled!`);
+    clearInterval(player.room.timerInterval);
+  }
+
+  static enableCountdown(player: Player, command: string, params: string[]) {
+    if (player.room.countdown === true) {
+      player.room.countdown = false;
+      player.room.sendChat(`${systemPrepend}Countdown disabled, songs will start instantly`);
+      return;
+    }
+
+    if (!params[0]) {
+      player.room.sendChat(`${systemPrepend}Please set a countdown timer between 2 and 15`);
+    } else {
+      player.room.countdown = !player.room.countdown;
+      player.room.timerLimit = parseInt(params[0], 10);
+    }
   }
 }

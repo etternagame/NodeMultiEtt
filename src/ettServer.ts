@@ -202,6 +202,12 @@ export class ETTServer {
       shrug: (player: Player, command: string, params: string[]) => {
         Room.playerShrugs(player, command, params);
       },
+      countdown: (player: Player, command: string, params: string[]) => {
+        Room.enableCountdown(player, command, params);
+      },
+      stop: (player: Player, command: string, params: string[]) => {
+        Room.stopTimer(player);
+      },
       free: (player: Player, command: string, params: string[]) => {
         Room.freeMode(player, command, params);
       },
