@@ -321,8 +321,9 @@ export class Room {
   }
 
   static roll(player: Player, command: string, params: string[]) {
+    if (!player.room) return;
     if (params[0]) {
-      let rolledNumber = Math.floor(Math.random() * (params[0] - 0) + 0);
+      let rolledNumber = Math.floor(Math.random() * (+params[0] - 0) + 0);
 
       player.room.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
     } else {
@@ -356,6 +357,10 @@ export class Room {
   }
 
   static playerShrugs(player: Player, command: string, params: string[]) {
+    if (!player.room) {
+      console.log('Trying to send shrug for roomless player ' + player.user);
+      return;
+    }
     player.room.sendChat(`${colorize(player.user, playerColor)}: ¯\\_(ツ)_/¯`);
   }
 
@@ -377,11 +382,19 @@ export class Room {
   }
 
   static stopTimer(player: Player) {
+    if (!player.room) {
+      console.log('Trying to stop timer for roomless player ' + player.user);
+      return;
+    }
     player.room.sendChat(`${systemPrepend}Song start cancelled!`);
     clearInterval(player.room.timerInterval);
   }
 
   static enableCountdown(player: Player, command: string, params: string[]) {
+    if (!player.room) {
+      console.log('Trying to enable countdown for roomless player ' + player.user);
+      return;
+    }
     if (player.room.countdown === true) {
       player.room.countdown = false;
       player.room.sendChat(`${systemPrepend}Countdown disabled, songs will start instantly`);

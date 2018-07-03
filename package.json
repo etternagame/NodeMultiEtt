@@ -45,6 +45,7 @@
     "lint": "eslint --fix **/*.js",
     "format": "prettier --write **/*.{js,json,md}",
     "precommit": "lint-staged",
+    "postinstall": "npm run-script build",
     "build": "node ./node_modules/typescript/bin/tsc"
   },
   "lint-staged": {
