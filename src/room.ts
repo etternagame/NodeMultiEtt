@@ -36,6 +36,7 @@ export class Room {
   players: Player[];
   timerInterval: any;
   countdown: boolean;
+  countdownStarted: boolean;
   timerLimit: number;
   constructor(_name: string, _desc: string, _pass: string, _owner: Player) {
     this.name = _name;
@@ -365,6 +366,14 @@ export class Room {
   }
 
   startTimer(limit: number) {
+    
+    if(this.countdownStarted == true) {
+      return;
+    }
+    
+    this.countdownStarted = !this.countdownStarted;
+    
+    
     return new Promise((resolve, reject) => {
       let currentTimer: number = limit;
 
@@ -375,6 +384,7 @@ export class Room {
         if (currentTimer === 0) {
           this.sendChat(`${systemPrepend}Starting song in ${currentTimer} seconds`);
           clearInterval(this.timerInterval);
+          this.countdownStarted = false;
           resolve(true);
         }
       }, 1000);
@@ -382,6 +392,9 @@ export class Room {
   }
 
   static stopTimer(player: Player) {
+    
+    this.countdownStarted = false;
+    
     if (!player.room) {
       console.log('Trying to stop timer for roomless player ' + player.user);
       return;
