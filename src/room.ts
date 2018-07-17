@@ -47,6 +47,7 @@ export class Room {
     this.ops = [];
     this.free = false; // free===Anyone can pick
     this.countdown = false; // No countdown before song start
+    this.countdownStarted = false; 
     this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
     this.state = 0; // Selecting(0), Playing(1)
     this.chart = null;
