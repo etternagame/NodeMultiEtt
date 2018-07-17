@@ -394,7 +394,7 @@ export class Room {
 
   static stopTimer(player: Player) {
     
-    this.countdownStarted = false;
+    player.room.countdownStarted = false;
     
     if (!player.room) {
       console.log('Trying to stop timer for roomless player ' + player.user);
