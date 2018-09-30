@@ -2,6 +2,10 @@ export function makeMessage(type: string, payload: object | null = null) {
   return payload ? { type, payload } : { type };
 }
 
+export const LOBBY_MESSAGE = 0;
+export const ROOM_MESSAGE = 1;
+export const PRIVATE_MESSAGE = 2;
+
 export interface ChartMessage {
   title: string;
   subtitle: string;

@@ -12,6 +12,9 @@ import { Room, SerializedRoom } from './room';
 import { colorize, opColor, ownerColor, playerColor, systemPrepend } from './utils';
 
 import {
+  ROOM_MESSAGE,
+  LOBBY_MESSAGE,
+  PRIVATE_MESSAGE,
   makeMessage,
   GenericMessage,
   RoomMessage,
@@ -734,7 +737,7 @@ export class ETTServer {
     }
 
     switch (message.msgtype) {
-      case 0: // lobby (everyone)
+      case LOBBY_MESSAGE: // lobby (everyone)
         this.wss.clients.forEach(client => {
           client.player.sendChat(0, `${colorize(player.user, playerColor)}: ${message.msg}`);
         });
@@ -744,7 +747,7 @@ export class ETTServer {
         }
 
         break;
-      case 1: // room (people in room)
+      case ROOM_MESSAGE: // room (people in room)
         if (!player.room || player.room.name !== message.tab) {
           player.sendChat(1, `${systemPrepend}You're not in the room ${message.tab}`, message.tab);
           return;
@@ -764,7 +767,7 @@ export class ETTServer {
         });
 
         break;
-      case 2: // pm (tabname=user to send to)
+      case PRIVATE_MESSAGE: // pm (tabname=user to send to)
         this.pm(player, message.tab, message.msg);
         break;
     }

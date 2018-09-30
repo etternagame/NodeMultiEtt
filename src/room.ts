@@ -1,7 +1,7 @@
 import { Chart } from './chart';
 import { Player } from './player';
 
-import { makeMessage, ChartMessage, GenericMessage } from './messages';
+import { makeMessage, ChartMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
 import {
   colorize,
