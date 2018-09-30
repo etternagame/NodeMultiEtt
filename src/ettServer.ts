@@ -277,7 +277,7 @@ export class ETTServer {
     if (this.connectionFailed) return;
 
     // Reconnect
-    mongodbD.MongoClient.connect(this.mongoDBURL, { useNewUrlParser: true }, (err, client) => {
+    mongodbD.MongoClient.connect(this.mongoDBURL, (err, client) => {
       if (err || !client) {
         this.connectionFailed = true;
         console.log(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
@@ -336,7 +336,7 @@ export class ETTServer {
   }
 
   loadAccounts() {
-    mongodbD.MongoClient.connect(this.mongoDBURL, { useNewUrlParser: true }, (err, client) => {
+    mongodbD.MongoClient.connect(this.mongoDBURL, (err, client) => {
       if (err || !client) {
         this.dbConnectionFailed = true;
         console.log(`mongodb connection failed to ${this.mongoDBURL} error: ${err}`);
