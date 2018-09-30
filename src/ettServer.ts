@@ -12,8 +12,8 @@ import {
   GenericMessage,
   RoomMessage,
   ChartMessage,
-  ChatMessage,
-  LoginMessage
+  LoginMessage,
+  ChatMessage
 } from './messages';
 
 const express = require('express');

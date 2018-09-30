@@ -4,7 +4,14 @@ const Table = require('cli-table');
 const colors = require('colors');
 require('dotenv').load();
 
-if ('help' in argv || !('MONGODB_URI' in argv)) {
+const DB_NAME = argv.DB_NAME || process.env.DB_NAME || 'ettmulti';
+const PORT = argv.PORT || process.env.PORT || 8765;
+const LOGPACKETS = argv.LOG_PACKETS || process.env.LOG_PACKETS || true;
+const MONGODB_URI = argv.MONGODB_URI || process.env.MONGODB_URI;
+const PING_INTERVAL = argv.PING_INTERVAL || process.env.PING_INTERVAL || 15000;
+const BOT_TOKEN = argv.BOT_TOKEN || process.env.BOT_TOKEN || '';
+
+if ('help' in argv || !MONGODB_URI) {
   console.log('Example: '.bold.blue);
   console.log('node start.js --MONGODB_URI mongodb://localhost:27017/ --DB_NAME etterna\n');
   console.log('Options: '.bold.blue);
@@ -32,13 +39,6 @@ if ('help' in argv || !('MONGODB_URI' in argv)) {
 
   process.exit();
 }
-
-const DB_NAME = argv.DB_NAME || process.env.DB_NAME || 'ettmulti';
-const PORT = argv.PORT || process.env.PORT || 8765;
-const LOGPACKETS = argv.LOG_PACKETS || process.env.LOG_PACKETS || true;
-const MONGODB_URI = argv.MONGODB_URI || process.env.MONGODB_URI;
-const PING_INTERVAL = argv.PING_INTERVAL || process.env.PING_INTERVAL || 15000;
-const BOT_TOKEN = argv.BOT_TOKEN || process.env.BOT_TOKEN || '';
 
 const server = new ETTServer({
   pingInterval: PING_INTERVAL,

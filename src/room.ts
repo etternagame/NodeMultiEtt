@@ -36,6 +36,7 @@ export class Room {
   players: Player[];
   timerInterval: any;
   countdown: boolean;
+  countdownStarted: boolean;
   timerLimit: number;
   constructor(_name: string, _desc: string, _pass: string, _owner: Player) {
     this.name = _name;
@@ -46,6 +47,7 @@ export class Room {
     this.ops = [];
     this.free = false; // free===Anyone can pick
     this.countdown = false; // No countdown before song start
+    this.countdownStarted = false; 
     this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
     this.state = 0; // Selecting(0), Playing(1)
     this.chart = null;
@@ -362,14 +364,21 @@ export class Room {
 
   static playerShrugs(player: Player, command: string, params: string[]) {
     if (!player.room) {
-      //TODO
+      console.log('Trying to send shrug for roomless player ' + player.user);
       return;
     }
-
     player.room.sendChat(`${colorize(player.user, playerColor)}: ¯\\_(ツ)_/¯`);
   }
 
   startTimer(limit: number) {
+    
+    if(this.countdownStarted == true) {
+      return;
+    }
+    
+    this.countdownStarted = !this.countdownStarted;
+    
+    
     return new Promise((resolve, reject) => {
       let currentTimer: number = limit;
 
@@ -380,6 +389,7 @@ export class Room {
         if (currentTimer === 0) {
           this.sendChat(`${systemPrepend}Starting song in ${currentTimer} seconds`);
           clearInterval(this.timerInterval);
+          this.countdownStarted = false;
           resolve(true);
         }
       }, 1000);
@@ -387,21 +397,22 @@ export class Room {
   }
 
   static stopTimer(player: Player) {
+    
+    player.room.countdownStarted = false;
+    
     if (!player.room) {
-      //TODO
+      console.log('Trying to stop timer for roomless player ' + player.user);
       return;
     }
-
     player.room.sendChat(`${systemPrepend}Song start cancelled!`);
     clearInterval(player.room.timerInterval);
   }
 
   static enableCountdown(player: Player, command: string, params: string[]) {
     if (!player.room) {
-      //TODO
+      console.log('Trying to enable countdown for roomless player ' + player.user);
       return;
     }
-
     if (player.room.countdown === true) {
       player.room.countdown = false;
       player.room.sendChat(`${systemPrepend}Countdown disabled, songs will start instantly`);
