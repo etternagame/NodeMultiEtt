@@ -45,13 +45,13 @@ export class Room {
     this.players = [];
     this.owner = _owner;
     this.ops = [];
-    this.free = false; // free===Anyone can pick
+    this.free = false; // Free decides if only the owner can select charts
     this.countdown = false; // No countdown before song start
     this.countdownStarted = false;
     this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
     this.state = 0; // Selecting(0), Playing(1)
     this.chart = null;
-    this.freerate = false;
+    this.freerate = false; // Free rate decides if only the owner can select the chart rate
     this.playing = false;
     this.timerInterval = 0;
     this.timerLimit = 0;
@@ -404,6 +404,27 @@ export class Room {
 
     player.room.sendChat(`${systemPrepend}Song start cancelled!`);
     clearInterval(player.room.timerInterval);
+  }
+
+  static help(player: Player, command: string, params: string[]) {
+    if (!player.room) {
+      console.log('Trying to get help for a roomless player ' + player.user);
+      return;
+    }
+
+    var helpMessage = `
+      Commands:\n
+        /free - Enable free mode allows anyone to choose a chart (Privileged)\n
+        /freerate - Enable free rate allowing people to play any rate the want (Privileged)\n
+        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n 
+        /countdown - Enable a countdown before starting the chart (Privileged)\n
+        /stop - Stop the current countdown (Privileged)\n
+        /shrug - Our favorite little emoji\n
+        /roll - Roll a random number, you can specify a limit i.e. roll 1442\n
+        /help - This command right here!
+    `;
+
+    player.sendChat(PRIVATE_MESSAGE, helpMessage);
   }
 
   static enableCountdown(player: Player, command: string, params: string[]) {

@@ -215,6 +215,9 @@ export class ETTServer {
       countdown: (player: Player, command: string, params: string[]) => {
         Room.enableCountdown(player, command, params);
       },
+      help: (player: Player, command: string, params: string[]) => {
+        Room.help(player, command, params);
+      },
       stop: (player: Player, command: string, params: string[]) => {
         Room.stopTimer(player);
       },
