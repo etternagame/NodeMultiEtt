@@ -3,11 +3,18 @@ import * as bcrypt from 'bcrypt';
 import * as mongodbD from 'mongodb';
 import { Player } from './player';
 
-import { Room } from './room';
+import { Room, SerializedRoom } from './room';
 
 import { colorize, opColor, ownerColor, playerColor, systemPrepend } from './utils';
 
-import { makeMessage } from './messages';
+import {
+  makeMessage,
+  GenericMessage,
+  RoomMessage,
+  ChartMessage,
+  ChatMessage,
+  LoginMessage
+} from './messages';
 
 const express = require('express');
 const discord = require('discord.js');
