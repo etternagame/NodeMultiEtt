@@ -47,7 +47,7 @@ export class Room {
     this.ops = [];
     this.free = false; // free===Anyone can pick
     this.countdown = false; // No countdown before song start
-    this.countdownStarted = false; 
+    this.countdownStarted = false;
     this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
     this.state = 0; // Selecting(0), Playing(1)
     this.chart = null;
@@ -76,7 +76,7 @@ export class Room {
 
   startChart(player: Player, message: ChartMessage) {
     if (this.countdown === true) {
-      this.startTimer(this.timerLimit).then(() => {
+      Promise.resolve(this.startTimer(this.timerLimit)).then(() => {
         let chart: Chart = new Chart(message, player);
 
         // Use the selectionMode criteria
@@ -371,14 +371,12 @@ export class Room {
   }
 
   startTimer(limit: number) {
-    
-    if(this.countdownStarted == true) {
-      return;
+    if (this.countdownStarted == true) {
+      return false;
     }
-    
+
     this.countdownStarted = !this.countdownStarted;
-    
-    
+
     return new Promise((resolve, reject) => {
       let currentTimer: number = limit;
 
@@ -397,13 +395,13 @@ export class Room {
   }
 
   static stopTimer(player: Player) {
-    
-    player.room.countdownStarted = false;
-    
     if (!player.room) {
       console.log('Trying to stop timer for roomless player ' + player.user);
       return;
     }
+
+    player.room.countdownStarted = false;
+
     player.room.sendChat(`${systemPrepend}Song start cancelled!`);
     clearInterval(player.room.timerInterval);
   }
