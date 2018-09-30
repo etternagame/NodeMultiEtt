@@ -1,6 +1,10 @@
 import * as wsD from 'ws';
 import * as bcrypt from 'bcrypt';
 import * as mongodbD from 'mongodb';
+import * as express from 'express';
+import * as discord from 'discord.js';
+import * as request from 'request';
+
 import { Player } from './player';
 
 import { Room, SerializedRoom } from './room';
@@ -15,10 +19,6 @@ import {
   LoginMessage,
   ChatMessage
 } from './messages';
-
-const express = require('express');
-const discord = require('discord.js');
-const request = require('request');
 
 // Bcrypt default salt rounds
 const saltRounds = 10;
