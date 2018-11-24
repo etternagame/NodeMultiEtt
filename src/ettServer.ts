@@ -162,7 +162,10 @@ export class ETTServer {
         res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,HEAD,OPTIONS");
         next();
     })
-    this.server = app.listen(this.port, () => console.log(`Listening on ${this.port}`));
+    if (!params.ip) 
+      this.server = app.listen(this.port, () => console.log(`Listening on ${this.port}`));
+    else
+      this.server = app.listen(this.port, params.ip, () => console.log(`Listening on ${this.port}`));
     this.wss = new SocketServer({ server: this.server });
 
     // init member variables
