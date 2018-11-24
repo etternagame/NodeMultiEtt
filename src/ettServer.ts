@@ -155,7 +155,14 @@ export class ETTServer {
     };
 
     // server
-    this.server = express().listen(this.port, () => console.log(`Listening on ${this.port}`));
+    const app = express();
+    app.use(function(req,res,next)
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Headers", "X-Requested-With,Upgrade-Insecure-Requests");
+        res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,HEAD,OPTIONS");
+        next();
+    })
+    this.server = app.listen(this.port, () => console.log(`Listening on ${this.port}`));
     this.wss = new SocketServer({ server: this.server });
 
     // init member variables
