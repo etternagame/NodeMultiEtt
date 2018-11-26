@@ -140,7 +140,6 @@ export class Room {
         )
     );
   }
-
   refreshUserList() {
     this.send(
       makeMessage('userlist', {

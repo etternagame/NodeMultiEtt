@@ -4,7 +4,6 @@ import * as mongodbD from 'mongodb';
 import * as express from 'express';
 import * as discord from 'discord.js';
 import * as request from 'request';
-import { userInfo } from 'os';
 
 import { Player } from './player';
 
@@ -29,10 +28,13 @@ const saltRounds = 10;
 
 let SocketServer: any = null;
 
+// TODO make these use import
 try {
+  // eslint-disable-next-line global-require
   SocketServer = require('uws').Server;
 } catch (e) {
   console.log('Require uws failed, trying ws');
+  // eslint-disable-next-line global-require
   SocketServer = require('ws').Server;
 }
 
@@ -233,7 +235,7 @@ export class ETTServer {
       help: (player: Player, command: string, params: string[]) => {
         Room.help(player, command, params);
       },
-      stop: (player: Player, command: string, params: string[]) => {
+      stop: (player: Player) => {
         Room.stopTimer(player);
       },
       free: (player: Player, command: string, params: string[]) => {
@@ -381,7 +383,7 @@ export class ETTServer {
             this.accountList.push(account);
           },
           error => {
-            // done or error
+            console.log(error);
           }
         );
         this.db
@@ -430,6 +432,7 @@ export class ETTServer {
         };
       }
 
+      // eslint-disable-next-line no-underscore-dangle
       console.log(`Client connected (${ws._socket.remoteAddress})`);
       ws.player = this.addPlayer('', '', ws);
 
@@ -446,6 +449,7 @@ export class ETTServer {
       ws.player.sendRoomList(this.currentRooms.map(r => r.serialize()));
 
       ws.on('close', () => {
+        // eslint-disable-next-line no-underscore-dangle
         console.log(`Client disconnected (${ws._socket.remoteAddress})`);
         this.removePlayer(ws.player);
       });
@@ -471,6 +475,7 @@ export class ETTServer {
       this.wss.clients.forEach(ws => {
         if (ws.pingsToAnswer >= this.pingCountToDisconnect) {
           console.log(
+            // eslint-disable-next-line no-underscore-dangle
             `Terminating connection(${ws._socket.remoteAddress}) because ping was not answered`
           );
 
@@ -482,11 +487,12 @@ export class ETTServer {
         }
 
         ws.pingsToAnswer += 1;
+        return true;
       });
     }, this.pingInterval);
   }
 
-  onLogout(player: Player) {
+  onLogout() {
     // TODO
   }
 
@@ -628,35 +634,35 @@ export class ETTServer {
     }
   }
 
-  onLeaveRoom(player: Player, message: RoomMessage) {
+  onLeaveRoom(player: Player) {
     if (!player.user) {
       return;
     }
     this.leaveRoom(player);
   }
 
-  onHasChart(player: Player, message: ChartMessage) {}
+  onHasChart() {}
 
-  onStartingChart(player: Player, message: ChartMessage) {
+  onStartingChart(player: Player) {
     player.state = 1;
     this.updateRoomState(player.room);
   }
 
-  onEnterOptions(player: Player, message: GenericMessage) {
+  onEnterOptions(player: Player) {
     player.state = 3;
     this.updateRoomState(player.room);
   }
 
-  onLeaveOptions(player: Player, message: GenericMessage) {
+  onLeaveOptions(player: Player) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
-  onEnterEval(player: Player, message: GenericMessage) {
+  onEnterEval(player: Player) {
     player.state = 2;
     this.updateRoomState(player.room);
   }
 
-  onLeaveEval(player: Player, message: GenericMessage) {
+  onLeaveEval(player: Player) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
@@ -670,7 +676,7 @@ export class ETTServer {
     }
   }
 
-  onGameOver(player: Player, message: GenericMessage) {
+  onGameOver(player: Player) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
@@ -682,7 +688,7 @@ export class ETTServer {
 
     player.room.send(makeMessage('score', { name: player.user, score: message }));
   }
-  onMissingChart(player: Player, message: GenericMessage) {
+  onMissingChart(player: Player) {
     if (!player.user || !player.room) return;
     if (player.room) {
       player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
@@ -742,7 +748,7 @@ export class ETTServer {
     }
   }
 
-  onPing(player: Player, message: GenericMessage) {
+  onPing(player: Player) {
     if (player.ws.pingsToAnswer > 0) {
       player.ws.pingsToAnswer -= 1;
     }
@@ -764,6 +770,14 @@ export class ETTServer {
       return true;
     }
     return false;
+  }
+  getUserColor(player: Player, room: Room) {
+    if (player.user === room.owner.user) {
+      return ownerColor;
+    } else if (room.ops.find((x: string) => x === player.user)) {
+      return opColor;
+    }
+    return playerColor;
   }
 
   onChat(player: Player, message: ChatMessage) {
@@ -794,9 +808,9 @@ export class ETTServer {
         if (this.useDiscord) {
           this.discordChannel.send(`${player.user}: ${message.msg}`);
         }
-
         break;
-      case ROOM_MESSAGE: // room (people in room)
+      case ROOM_MESSAGE: {
+        // room (people in room)
         if (!player.room || player.room.name !== message.tab) {
           player.sendChat(
             ROOM_MESSAGE,
@@ -806,22 +820,19 @@ export class ETTServer {
           return;
         }
         const r = player.room;
+
+        const userColor = this.getUserColor(player, r);
+
         player.room.players.forEach((pl: Player) => {
           pl.sendChat(
             ROOM_MESSAGE,
-            `${colorize(
-              player.user,
-              player.user === r.owner.user
-                ? ownerColor
-                : r.ops.find((x: string) => x === player.user)
-                  ? opColor
-                  : playerColor
-            )}: ${message.msg}`,
+            `${colorize(player.user, userColor)}: ${message.msg}`,
             message.tab
           );
         });
 
         break;
+      }
       case PRIVATE_MESSAGE: // pm (tabname=user to send to)
         this.pm(player, message.tab, message.msg);
         break;
