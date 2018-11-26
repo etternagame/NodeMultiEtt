@@ -1,3 +1,5 @@
+import { createLogger, format, transports } from 'winston';
+
 import Chart from './chart';
 import Player from './player';
 
@@ -12,6 +14,11 @@ import {
   stringToColour,
   unauthorizedChat
 } from './utils';
+
+const logger = createLogger({
+  format: format.simple(),
+  transports: [new transports.Console()]
+});
 
 export interface SerializedRoom {
   name: string;
@@ -363,7 +370,7 @@ export class Room {
 
   static playerShrugs(player: Player) {
     if (!player.room) {
-      console.log(`Trying to send shrug for roomless player ${player.user}`);
+      logger.error(`Trying to send shrug for roomless player ${player.user}`);
       return;
     }
     player.room.sendChat(`${colorize(player.user, playerColor)}: ¯\\_(ツ)_/¯`);
@@ -395,7 +402,7 @@ export class Room {
 
   static stopTimer(player: Player) {
     if (!player.room) {
-      console.log(`Trying to stop timer for roomless player ${player.user}`);
+      logger.error(`Trying to stop timer for roomless player ${player.user}`);
       return;
     }
 
@@ -407,7 +414,7 @@ export class Room {
 
   static help(player: Player) {
     if (!player.room) {
-      console.log(`Trying to get help for a roomless player ${player.user}`);
+      logger.error(`Trying to get help for a roomless player ${player.user}`);
       return;
     }
 
@@ -428,7 +435,7 @@ export class Room {
 
   static enableCountdown(player: Player, command: string, params: string[]) {
     if (!player.room) {
-      console.log(`Trying to enable countdown for roomless player ${player.user}`);
+      logger.error(`Trying to enable countdown for roomless player ${player.user}`);
       return;
     }
     if (player.room.countdown === true) {

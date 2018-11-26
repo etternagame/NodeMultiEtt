@@ -4,6 +4,7 @@ import * as mongodbD from 'mongodb';
 import * as express from 'express';
 import * as discord from 'discord.js';
 import * as request from 'request';
+import { createLogger, format, transports } from 'winston';
 
 import Player from './player';
 
@@ -26,6 +27,11 @@ import {
 // Bcrypt default salt rounds
 const saltRounds = 10;
 
+const logger = createLogger({
+  format: format.simple(),
+  transports: [new transports.Console()]
+});
+
 let SocketServer: any = null;
 
 // TODO make these use import
@@ -33,7 +39,7 @@ try {
   // eslint-disable-next-line global-require
   SocketServer = require('uws').Server;
 } catch (e) {
-  console.log('Require uws failed, trying ws');
+  logger.warn('Require uws failed, trying ws');
   // eslint-disable-next-line global-require
   SocketServer = require('ws').Server;
 }
@@ -163,10 +169,10 @@ export class ETTServer {
       next();
     });
     if (!params.ip)
-      this.server = app.listen(this.port, () => console.log(`Listening on ${this.port}`));
+      this.server = app.listen(this.port, () => logger.info(`Listening on ${this.port}`));
     else
       this.server = app.listen(this.port, params.ip, () =>
-        console.log(`Listening on ${this.port}`)
+        logger.info(`Listening on ${this.port}`)
       );
     this.wss = new SocketServer({ server: this.server });
 
@@ -188,7 +194,7 @@ export class ETTServer {
       const serv = this;
 
       this.discordClient.on('ready', () => {
-        console.log(`Discord logged in as ${this.discordClient.user.tag}!`);
+        logger.info(`Discord logged in as ${this.discordClient.user.tag}!`);
         serv.discordChannel = serv.discordClient.guilds
           .get(serv.discordGuildId)
           .channels.get(serv.discordChannelId);
@@ -211,7 +217,6 @@ export class ETTServer {
       });
     }
   }
-
   makeGlobalCommands() {
     return {
       pm: (player: Player, command: string, params: string[]) => {
@@ -291,7 +296,7 @@ export class ETTServer {
       this.db
         .collection('accounts')
         .insert({ user: player.user, pass: player.pass }, (err: any, records: any) => {
-          console.log(`Created account for user ${records.ops[0].user}`);
+          logger.info(`Created account for user ${records.ops[0].user}`);
         });
       return;
     }
@@ -305,11 +310,11 @@ export class ETTServer {
       (err, client) => {
         if (err || !client) {
           this.connectionFailed = true;
-          console.log(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
+          logger.error(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
           return;
         }
 
-        console.log('Reconnected to mongodb');
+        logger.debug('Reconnected to mongodb');
 
         // Add new user
         this.db = client.db(this.mongoDBName);
@@ -317,7 +322,7 @@ export class ETTServer {
         this.db
           .collection('accounts')
           .insert({ user: player.user, pass: player.pass }, (error, records) => {
-            console.log(`Created account for user ${records.ops[0].user}`);
+            logger.info(`Created account for user ${records.ops[0].user}`);
           });
       }
     );
@@ -367,11 +372,11 @@ export class ETTServer {
       (err, client) => {
         if (err || !client) {
           this.dbConnectionFailed = true;
-          console.log(`mongodb connection failed to ${this.mongoDBURL} error: ${err}`);
+          logger.error(`mongodb connection failed to ${this.mongoDBURL} error: ${err}`);
           return;
         }
 
-        console.log('Connected to mongodb');
+        logger.info('Connected to mongodb');
 
         this.db = client.db(this.mongoDBName);
         const collection = this.db.collection('accounts');
@@ -383,7 +388,7 @@ export class ETTServer {
             this.accountList.push(account);
           },
           error => {
-            console.log(error);
+            logger.error(error);
           }
         );
         this.db
@@ -417,9 +422,9 @@ export class ETTServer {
         ws.send = (str: string) => {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
-            console.log(`out: ${str}`);
+            logger.debug(`out: ${str}`);
           } else {
-            console.log(`Connection closed so msg not sent: ${str}`);
+            logger.debug(`Connection closed so msg not sent: ${str}`);
           }
         };
       } else {
@@ -427,13 +432,13 @@ export class ETTServer {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
           } else {
-            console.log(`Connection closed so msg not sent: ${str}`);
+            logger.debug(`Connection closed so msg not sent: ${str}`);
           }
         };
       }
 
       // eslint-disable-next-line no-underscore-dangle
-      console.log(`Client connected (${ws._socket.remoteAddress})`);
+      logger.info(`Client connected (${ws._socket.remoteAddress})`);
       ws.player = this.addPlayer('', '', ws);
 
       // Send server version and name
@@ -450,13 +455,13 @@ export class ETTServer {
 
       ws.on('close', () => {
         // eslint-disable-next-line no-underscore-dangle
-        console.log(`Client disconnected (${ws._socket.remoteAddress})`);
+        logger.info(`Client disconnected (${ws._socket.remoteAddress})`);
         this.removePlayer(ws.player);
       });
 
       ws.on('message', (strMessage: string) => {
         if (this.logPackets) {
-          console.log(`in: ${strMessage}`);
+          logger.debug(`in: ${strMessage}`);
         }
 
         const message = JSON.parse(strMessage);
@@ -474,7 +479,7 @@ export class ETTServer {
     setInterval(() => {
       this.wss.clients.forEach(ws => {
         if (ws.pingsToAnswer >= this.pingCountToDisconnect) {
-          console.log(
+          logger.debug(
             // eslint-disable-next-line no-underscore-dangle
             `Terminating connection(${ws._socket.remoteAddress}) because ping was not answered`
           );
@@ -837,7 +842,7 @@ export class ETTServer {
         this.pm(player, message.tab, message.msg);
         break;
       default:
-        console.log('unknown msg type: {}', message.msgtype);
+        logger.error('unknown msg type: {}', message.msgtype);
         break;
     }
   }
