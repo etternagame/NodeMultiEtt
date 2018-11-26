@@ -192,6 +192,7 @@ export class ETTServer {
           .get(serv.discordGuildId)
           .channels.get(serv.discordChannelId);
       });
+      this.discordClient.on('error', console.error);
 
       this.discordClient.on('message', (msg: GenericMessage) => {
         if (msg.channel.id !== serv.discordChannelId || msg.author.bot) {
@@ -380,7 +381,7 @@ export class ETTServer {
     this.db = null;
     this.dbConnectionFailed = false;
     this.loadAccounts();
-
+    this.wss.on('error', console.error);
     this.wss.on('connection', (ws: EWebSocket) => {
       ws.tmpaux = ws.send;
 
