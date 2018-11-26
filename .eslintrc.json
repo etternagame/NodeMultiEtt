@@ -6,6 +6,12 @@
     "prettier/prettier": ["error"],
     "no-console": 0,
     "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
-    "no-param-reassign": ["error", { "props": false }]
+    "no-param-reassign": ["error", { "props": false }],
+    "unicorn/filename-case": [
+      "error",
+      {
+        "case": "camelCase"
+      }
+    ]
   }
 }
