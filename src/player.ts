@@ -2,7 +2,7 @@ import { EWebSocket } from './ettServer';
 
 import { Room, SerializedRoom } from './room';
 
-import { makeMessage, GenericMessage } from './messages';
+import { makeMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
 import { color, removeMultiColor } from './utils';
 
@@ -18,6 +18,10 @@ export class Player {
     this.ws = _ws;
     this.state = 0; // 0 = ready, 1 = playing, 2 = evalScreen, 3 = options, 4 = notReady(unkown reason)
     this.room = null;
+  }
+
+  sendPM(msg: string) {
+    this.sendChat(PRIVATE_MESSAGE, msg);
   }
 
   leaveRoom() {

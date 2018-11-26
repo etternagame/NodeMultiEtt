@@ -22,6 +22,7 @@ import {
   LoginMessage,
   ChatMessage
 } from './messages';
+import { userInfo } from 'os';
 
 // Bcrypt default salt rounds
 const saltRounds = 10;
@@ -97,12 +98,8 @@ export class ETTServer {
   discordClient: any;
   useDiscord: boolean;
   wss: EWebSocketServer;
-  globalCommands: {
-    [key: string]: (player: Player, command: string, params: string[]) => void;
-  };
-  roomCommands: {
-    [key: string]: (player: Player, command: string, params: string[]) => void;
-  };
+  globalCommands: { [key: string]: (player: Player, command: string, params: string[]) => void };
+  roomCommands: { [key: string]: (player: Player, command: string, params: string[]) => void };
   currentRooms: Room[];
   serverName: string;
   accountList: { user: string; pass: string }[];
@@ -110,9 +107,8 @@ export class ETTServer {
   pingInterval: number;
   logPackets: boolean;
   pingCountToDisconnect: number;
-  messageHandlers: {
-    [key: string]: ETTMessage;
-  };
+  globalPermissions: { [key: string]: [string] };
+  messageHandlers: { [key: string]: ETTMessage };
   dbConnectionFailed: boolean = false;
   db: mongodbD.Db | null = null;
   mongoDBName: string;
@@ -132,6 +128,7 @@ export class ETTServer {
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
     this.globalCommands = this.makeGlobalCommands();
     this.roomCommands = this.makeRoomCommands();
+    this.allowed = {};
 
     this.messageHandlers = {
       login: params.handlers.onLogin || this.onLogin,
@@ -189,7 +186,7 @@ export class ETTServer {
 
         serv.wss.clients.forEach((client: EWebSocket) => {
           client.player.sendChat(
-            0,
+            LOBBY_MESSAGE,
             `${colorize('Discord')} (${colorize(msg.author.username, playerColor)}): ${
               msg.cleanContent
             }`
@@ -203,6 +200,10 @@ export class ETTServer {
     return {
       pm: (player: Player, command: string, params: string[]) => {
         this.pm(player, params[0], params.slice(1).join(' '));
+      },
+      request: (player: Player, command: string, params: string[]) => {
+        // Request chart (What else you gun request?)
+        this.requestChart(player, params[0], params[1]);
       }
     };
   }
@@ -283,24 +284,27 @@ export class ETTServer {
     if (this.connectionFailed) return;
 
     // Reconnect
-    mongodbD.MongoClient.connect(this.mongoDBURL, (err, client) => {
-      if (err || !client) {
-        this.connectionFailed = true;
-        console.log(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
-        return;
+    mongodbD.MongoClient.connect(
+      this.mongoDBURL,
+      (err, client) => {
+        if (err || !client) {
+          this.connectionFailed = true;
+          console.log(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
+          return;
+        }
+
+        console.log('Reconnected to mongodb');
+
+        // Add new user
+        this.db = client.db(this.mongoDBName);
+
+        this.db
+          .collection('accounts')
+          .insert({ user: player.user, pass: player.pass }, (err, records) => {
+            console.log(`Created account for user ${records.ops[0].user}`);
+          });
       }
-
-      console.log('Reconnected to mongodb');
-
-      // Add new user
-      this.db = client.db(this.mongoDBName);
-
-      this.db
-        .collection('accounts')
-        .insert({ user: player.user, pass: player.pass }, (err, records) => {
-          console.log(`Created account for user ${records.ops[0].user}`);
-        });
-    });
+    );
   }
 
   leaveRoom(player: Player) {
@@ -318,7 +322,7 @@ export class ETTServer {
         room.sendChat(`${systemPrepend}${player.user} left`);
         this.updateRoomState(room);
       }
-      player.sendChat(0, `${systemPrepend}Left room ${room.name}`);
+      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Left room ${room.name}`);
     }
   }
 
@@ -342,27 +346,44 @@ export class ETTServer {
   }
 
   loadAccounts() {
-    mongodbD.MongoClient.connect(this.mongoDBURL, (err, client) => {
-      if (err || !client) {
-        this.dbConnectionFailed = true;
-        console.log(`mongodb connection failed to ${this.mongoDBURL} error: ${err}`);
-        return;
-      }
-
-      console.log('Connected to mongodb');
-
-      this.db = client.db(this.mongoDBName);
-      const collection = this.db.collection('accounts');
-
-      collection.find().forEach(
-        (account: { user: string; pass: string }) => {
-          this.accountList.push(account);
-        },
-        function(err) {
-          // done or error
+    mongodbD.MongoClient.connect(
+      this.mongoDBURL,
+      (err, client) => {
+        if (err || !client) {
+          this.dbConnectionFailed = true;
+          console.log(`mongodb connection failed to ${this.mongoDBURL} error: ${err}`);
+          return;
         }
-      );
-    });
+
+        console.log('Connected to mongodb');
+
+        this.db = client.db(this.mongoDBName);
+        const collection = this.db.collection('accounts');
+        collection.createIndex({ user: 'text' }, { unique: true, name: 'username' });
+        // Both the collection and index are created if they dont exist (idempotent operations)
+
+        collection.find().forEach(
+          (account: { user: string; pass: string }) => {
+            this.accountList.push(account);
+          },
+          function(err) {
+            // done or error
+          }
+        );
+        this.db
+          .collection<{ [key: string]: [string] }>('globalPermissions')
+          .find()
+          .close()
+          .then(perms => (this.globalPermissions = perms));
+      }
+    );
+  }
+
+  async userExistsInDB(username: string): Promise<boolean> {
+    if (this.db) {
+      return this.db.collection('accounts').findOne({ user: username });
+    }
+    return false;
   }
 
   start() {
@@ -455,12 +476,12 @@ export class ETTServer {
 
   onSelectChart(player: Player, message: ChartMessage) {
     if (!player.room) {
-      player.sendChat(0, `${systemPrepend}You're not in a room`);
+      player.sendPM(`${systemPrepend}You're not in a room`);
       return;
     }
     if (!player.room.canSelect(player)) {
       player.sendChat(
-        1,
+        ROOM_MESSAGE,
         `${systemPrepend}You don't have the rights to select a chart!`,
         player.room.name
       );
@@ -471,12 +492,12 @@ export class ETTServer {
 
   onStartChart(player: Player, message: ChartMessage) {
     if (!player.room) {
-      player.sendChat(0, `${systemPrepend}You're not in a room`);
+      player.sendPM(`${systemPrepend}You're not in a room`);
       return;
     }
     if (!player.room || !player.room.canSelect(player)) {
       player.sendChat(
-        1,
+        PRIVATE_MESSAGE,
         `${systemPrepend}You don't have the rights to start a chart!`,
         player.room.name
       );
@@ -544,7 +565,7 @@ export class ETTServer {
               player.user = message.user;
               player.pass = message.pass;
 
-              player.sendChat(0, `Welcome to ${colorize(serv.serverName)}`);
+              player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(serv.serverName)}`);
               player.send(makeMessage('login', { logged: true, msg: '' }));
 
               return;
@@ -567,7 +588,7 @@ export class ETTServer {
           if (res === true) {
             player.user = message.user;
             player.pass = message.pass;
-            player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
+            player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
             player.send(makeMessage('login', { logged: true, msg: '' }));
           } else {
             player.send(
@@ -584,7 +605,7 @@ export class ETTServer {
         bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
           player.pass = hash;
           this.createAccount(player);
-          player.sendChat(0, `Welcome to ${colorize(this.serverName)}`);
+          player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
         });
       }
@@ -647,7 +668,9 @@ export class ETTServer {
   }
   onMissingChart(player: Player, message: GenericMessage) {
     if (!player.user || !player.room) return;
-    if (player.room) player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
+    if (player.room) {
+      player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
+    }
   }
 
   onCreateRoom(player: Player, message: RoomMessage) {
@@ -656,7 +679,7 @@ export class ETTServer {
     }
 
     if (!message.name) {
-      player.sendChat(0, `${systemPrepend}Cannot use empty room name`);
+      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Cannot use empty room name`);
       return;
     }
 
@@ -666,10 +689,14 @@ export class ETTServer {
     if (!existingRoom) {
       player.room = this.addRoom(message, player);
       player.send(makeMessage('createroom', { created: true }));
-      player.sendChat(1, `${systemPrepend} Created room "${message.name}"`, message.name);
+      player.sendChat(
+        ROOM_MESSAGE,
+        `${systemPrepend} Created room "${message.name}"`,
+        message.name
+      );
     } else {
       player.send(makeMessage('createroom', { created: false }));
-      player.sendChat(0, `${systemPrepend}Room name already in use`);
+      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Room name already in use`);
     }
   }
 
@@ -691,7 +718,7 @@ export class ETTServer {
         this.enterRoom(player, room);
       } else {
         player.send(makeMessage('enterroom', { entered: false }));
-        player.sendChat(0, `${systemPrepend}Incorrect password`);
+        player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Incorrect password`);
       }
     else {
       player.room = this.addRoom(message, player);
@@ -742,7 +769,10 @@ export class ETTServer {
     switch (message.msgtype) {
       case LOBBY_MESSAGE: // lobby (everyone)
         this.wss.clients.forEach(client => {
-          client.player.sendChat(0, `${colorize(player.user, playerColor)}: ${message.msg}`);
+          client.player.sendChat(
+            LOBBY_MESSAGE,
+            `${colorize(player.user, playerColor)}: ${message.msg}`
+          );
         });
 
         if (this.useDiscord) {
@@ -752,18 +782,24 @@ export class ETTServer {
         break;
       case ROOM_MESSAGE: // room (people in room)
         if (!player.room || player.room.name !== message.tab) {
-          player.sendChat(1, `${systemPrepend}You're not in the room ${message.tab}`, message.tab);
+          player.sendChat(
+            ROOM_MESSAGE,
+            `${systemPrepend}You're not in the room ${message.tab}`,
+            message.tab
+          );
           return;
         }
         let r = player.room;
         player.room.players.forEach((pl: Player) => {
           pl.sendChat(
-            1,
+            ROOM_MESSAGE,
             `${colorize(
               player.user,
               player.user === r.owner.user
                 ? ownerColor
-                : r.ops.find((x: string) => x === player.user) ? opColor : playerColor
+                : r.ops.find((x: string) => x === player.user)
+                  ? opColor
+                  : playerColor
             )}: ${message.msg}`,
             message.tab
           );
@@ -776,13 +812,48 @@ export class ETTServer {
     }
   }
 
+  userNotFoundOnlineHandler(sender: Player, reciever: string) {
+    this.userExistsInDB(reciever).then(exists => {
+      if (exists) sender.sendPM(`${systemPrepend}User ${reciever} is offline`);
+      else sender.sendPM(`${systemPrepend}User ${reciever} doesn't exist`);
+    });
+  }
+
+  userHasPemission(player: Player, permission: string) {
+    const allowedUsers = this.globalPermissions[permission];
+    return allowedUsers && allowedUsers.find(usr => usr === player.user);
+  }
+
+  // Handles chart request commands
+  requestChart(player: Player, params: string[]) {
+    if (!this.userHasPemission(player, 'chartRequesting')) {
+      player.sendChat(
+        PRIVATE_MESSAGE,
+        `${systemPrepend}You are not allowed to send chart requests. Contact a server admin`
+      );
+      return;
+    }
+    const recieverName = params[0];
+    const chartkey = params[1];
+    const rate = params[2] || 1000;
+    const requester = params[3] || player.user;
+
+    const playerToSendTo = this.playerList.find(x => x.user === recieverName);
+    if (!playerToSendTo) {
+      this.userNotFoundOnlineHandler(player, recieverName);
+    } else {
+      playerToSendTo.send(makeMessage('chartrequest', { requester, chartkey, rate }));
+    }
+  }
+
+  // Handles pm commands
   pm(player: Player, receptorName: string, msg: string) {
     const playerToSendTo = this.playerList.find(x => x.user === receptorName);
     if (!playerToSendTo) {
-      player.sendChat(0, `${systemPrepend}Could not find user ${receptorName}`);
+      player.sendPM(`${systemPrepend}Could not find user ${receptorName}`);
     } else {
-      playerToSendTo.sendChat(2, `${player.user}: ${msg}`, player.user);
-      player.sendChat(2, `${player.user}: ${msg}`, receptorName);
+      playerToSendTo.sendChat(PRIVATE_MESSAGE, `${player.user}: ${msg}`, player.user);
+      player.sendChat(PRIVATE_MESSAGE, `${player.user}: ${msg}`, receptorName);
     }
   }
 }
