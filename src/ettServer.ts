@@ -76,6 +76,7 @@ export interface ETTParams {
   port: number | null;
   logPackets: boolean | null;
   mongoDBURL: string | null;
+  ip: string | null;
   mongoDBName: string | null;
   serverName: string | null;
   pingInterval: number | null;
@@ -152,7 +153,17 @@ export class ETTServer {
     };
 
     // server
-    this.server = express().listen(this.port, () => console.log(`Listening on ${this.port}`));
+    const app = express();
+    app.use(function(req,res,next) {
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Headers", "X-Requested-With,Upgrade-Insecure-Requests");
+        res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,HEAD,OPTIONS");
+        next();
+    })
+    if (!params.ip) 
+      this.server = app.listen(this.port, () => console.log(`Listening on ${this.port}`));
+    else
+      this.server = app.listen(this.port, params.ip, () => console.log(`Listening on ${this.port}`));
     this.wss = new SocketServer({ server: this.server });
 
     // init member variables
@@ -178,6 +189,7 @@ export class ETTServer {
           .get(serv.discordGuildId)
           .channels.get(serv.discordChannelId);
       });
+      this.discordClient.on('error', console.error);
 
       this.discordClient.on('message', (msg: GenericMessage) => {
         if (msg.channel.id !== serv.discordChannelId || msg.author.bot) {
@@ -390,7 +402,7 @@ export class ETTServer {
     this.db = null;
     this.dbConnectionFailed = false;
     this.loadAccounts();
-
+    this.wss.on('error', console.error);
     this.wss.on('connection', (ws: EWebSocket) => {
       ws.tmpaux = ws.send;
 

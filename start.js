@@ -5,11 +5,12 @@ const colors = require('colors');
 require('dotenv').load();
 
 const DB_NAME = argv.DB_NAME || process.env.DB_NAME || 'ettmulti';
-const PORT = argv.PORT || process.env.PORT || 8765;
+const PORT = process.env.OPENSHIFT_INTERNAL_PORT || process.env.OPENSHIFT_NODEJS_PORT || argv.PORT || process.env.PORT || 8765;
 const LOGPACKETS = argv.LOG_PACKETS || process.env.LOG_PACKETS || true;
 const MONGODB_URI = argv.MONGODB_URI || process.env.MONGODB_URI;
 const PING_INTERVAL = argv.PING_INTERVAL || process.env.PING_INTERVAL || 15000;
 const BOT_TOKEN = argv.BOT_TOKEN || process.env.BOT_TOKEN || '';
+const OPT_IP = process.env.IP || process.env.OPENSHIFT_NODEJS_IP;
 
 if ('help' in argv || !MONGODB_URI) {
   console.log('Example: '.bold.blue);
@@ -29,6 +30,7 @@ if ('help' in argv || !MONGODB_URI) {
       ]
     },
     { '--PORT': ['8765', '4655', 'false'] },
+    { '--IP': ['localhost', '0.0.0.0', ''] },
     { '--DB_NAME': ['ettmulti', 'myDatabaseName', 'false'] },
     { '--LOGPACKETS': ['true', 'false', 'false'] },
     { '--PING_INTERVAL': ['15000', '20000', 'false'] },
@@ -46,6 +48,7 @@ const server = new ETTServer({
   port: PORT,
   mongoDBURL: MONGODB_URI,
   mongoDBName: DB_NAME,
+  ip: OPT_IP,
   discord: { botToken: BOT_TOKEN }
 });
 
