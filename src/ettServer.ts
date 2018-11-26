@@ -226,23 +226,23 @@ export class ETTServer {
 
   makeRoomCommands() {
     return {
-      shrug: (player: Player, command: string, params: string[]) => {
-        Room.playerShrugs(player, command, params);
+      shrug: (player: Player) => {
+        Room.playerShrugs(player);
       },
       countdown: (player: Player, command: string, params: string[]) => {
         Room.enableCountdown(player, command, params);
       },
-      help: (player: Player, command: string, params: string[]) => {
-        Room.help(player, command, params);
+      help: (player: Player) => {
+        Room.help(player);
       },
       stop: (player: Player) => {
         Room.stopTimer(player);
       },
-      free: (player: Player, command: string, params: string[]) => {
-        Room.freeMode(player, command, params);
+      free: (player: Player) => {
+        Room.freeMode(player);
       },
-      freerate: (player: Player, command: string, params: string[]) => {
-        Room.freeRate(player, command, params);
+      freerate: (player: Player) => {
+        Room.freeRate(player);
       },
       selectionMode: (player: Player, command: string, params: string[]) => {
         Room.selectionMode(player, command, params);

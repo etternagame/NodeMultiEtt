@@ -36,7 +36,7 @@ class Player {
     }
 
     this.room.remove(this);
-    const room = this.room;
+    const { room } = this;
     this.room = null;
 
     this.send(makeMessage('userlist', { players: [] }));
