@@ -1,5 +1,5 @@
-import { Chart } from './chart';
-import { Player } from './player';
+import Chart from './chart';
+import Player from './player';
 
 import { makeMessage, ChartMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 

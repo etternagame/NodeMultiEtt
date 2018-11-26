@@ -6,7 +6,7 @@ import { makeMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
 import { color, removeMultiColor } from './utils';
 
-export class Player {
+class Player {
   user: string;
   pass: string;
   ws: EWebSocket;
@@ -69,3 +69,5 @@ export class Player {
     return this.user;
   }
 }
+
+export { Player as default };

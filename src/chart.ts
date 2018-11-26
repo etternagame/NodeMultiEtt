@@ -2,7 +2,7 @@ import { Player } from './player';
 
 import { ChartMessage } from './messages';
 
-export class Chart {
+class Chart {
   title: string;
   subtitle: string;
   artist: string;
@@ -24,3 +24,5 @@ export class Chart {
     this.pickedBy = player.user;
   }
 }
+
+export { Chart as default };

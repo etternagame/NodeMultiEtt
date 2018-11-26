@@ -1,5 +1,5 @@
-import { Chart } from './chart';
-import { Player } from './player';
+import Chart from './chart';
+import Player from './player';
 
 export const selectionModeDescriptions: { [index: number]: string } = {
   0: 'By chartkey',

@@ -5,7 +5,7 @@ import * as express from 'express';
 import * as discord from 'discord.js';
 import * as request from 'request';
 
-import { Player } from './player';
+import Player from './player';
 
 import { Room, SerializedRoom } from './room';
 
