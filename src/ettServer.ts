@@ -115,7 +115,7 @@ export class ETTServer {
   mongoDBName: string;
   connectionFailed: boolean = false;
   server: object;
-  port: number; //{ [key: string]: any }
+  port: number; // { [key: string]: any }
   constructor(params: ETTParams) {
     // Options
     if (!params.discord) params.discord = {};
@@ -129,7 +129,7 @@ export class ETTServer {
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
     this.globalCommands = this.makeGlobalCommands();
     this.roomCommands = this.makeRoomCommands();
-    this.allowed = {};
+    this.globalPermissions = {};
 
     this.messageHandlers = {
       login: params.handlers.onLogin || this.onLogin,
@@ -154,16 +154,18 @@ export class ETTServer {
 
     // server
     const app = express();
-    app.use(function(req,res,next) {
-        res.header("Access-Control-Allow-Origin", "*");
-        res.header("Access-Control-Allow-Headers", "X-Requested-With,Upgrade-Insecure-Requests");
-        res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,HEAD,OPTIONS");
-        next();
-    })
-    if (!params.ip) 
+    app.use((req, res, next) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Headers', 'X-Requested-With,Upgrade-Insecure-Requests');
+      res.header('Access-Control-Allow-Methods', 'PUT,POST,GET,DELETE,HEAD,OPTIONS');
+      next();
+    });
+    if (!params.ip)
       this.server = app.listen(this.port, () => console.log(`Listening on ${this.port}`));
     else
-      this.server = app.listen(this.port, params.ip, () => console.log(`Listening on ${this.port}`));
+      this.server = app.listen(this.port, params.ip, () =>
+        console.log(`Listening on ${this.port}`)
+      );
     this.wss = new SocketServer({ server: this.server });
 
     // init member variables
@@ -215,7 +217,7 @@ export class ETTServer {
       },
       request: (player: Player, command: string, params: string[]) => {
         // Request chart (What else you gun request?)
-        this.requestChart(player, params[0], params[1]);
+        this.requestChart(player, params);
       }
     };
   }
@@ -312,7 +314,7 @@ export class ETTServer {
 
         this.db
           .collection('accounts')
-          .insert({ user: player.user, pass: player.pass }, (err, records) => {
+          .insert({ user: player.user, pass: player.pass }, (error, records) => {
             console.log(`Created account for user ${records.ops[0].user}`);
           });
       }
@@ -378,7 +380,7 @@ export class ETTServer {
           (account: { user: string; pass: string }) => {
             this.accountList.push(account);
           },
-          function(err) {
+          error => {
             // done or error
           }
         );
@@ -386,7 +388,9 @@ export class ETTServer {
           .collection<{ [key: string]: [string] }>('globalPermissions')
           .find()
           .close()
-          .then(perms => (this.globalPermissions = perms));
+          .then(perms => {
+            this.globalPermissions = perms;
+          });
       }
     );
   }
@@ -451,7 +455,7 @@ export class ETTServer {
           console.log(`in: ${strMessage}`);
         }
 
-        let message = JSON.parse(strMessage);
+        const message = JSON.parse(strMessage);
         const handler = this.messageHandlers[message.type];
 
         if (handler) {
@@ -477,13 +481,13 @@ export class ETTServer {
           ws.player.send(makeMessage('ping'));
         }
 
-        ws.pingsToAnswer = ws.pingsToAnswer + 1;
+        ws.pingsToAnswer += 1;
       });
     }, this.pingInterval);
   }
 
   onLogout(player: Player) {
-    //TODO
+    // TODO
   }
 
   onSelectChart(player: Player, message: ChartMessage) {
@@ -517,7 +521,7 @@ export class ETTServer {
       return;
     }
 
-    let err = player.room.canStart();
+    const err = player.room.canStart();
 
     if (!err) {
       player.room.startChart(player, message);
@@ -572,7 +576,7 @@ export class ETTServer {
           form: { username: message.user, password: message.pass }
         },
         (error: any, response: { statusCode: number }, body: string) => {
-          if (response && response.statusCode == 200) {
+          if (response && response.statusCode === 200) {
             if (JSON.parse(body).success === 'Valid') {
               player.user = message.user;
               player.pass = message.pass;
@@ -659,7 +663,7 @@ export class ETTServer {
 
   updateRoomState(room: Room | null) {
     if (!room) return;
-    let oldState = room.state;
+    const oldState = room.state;
     room.updateStatus();
     if (oldState !== room.state) {
       this.sendAll(makeMessage('updateroom', { room: room.serialize() }));
@@ -740,20 +744,20 @@ export class ETTServer {
 
   onPing(player: Player, message: GenericMessage) {
     if (player.ws.pingsToAnswer > 0) {
-      player.ws.pingsToAnswer = player.ws.pingsToAnswer - 1;
+      player.ws.pingsToAnswer -= 1;
     }
   }
 
   onCommand(player: Player, message: GenericMessage, commandName: string, params: string[]) {
     if (player.room) {
-      let command = this.roomCommands[commandName.toLocaleLowerCase()];
+      const command = this.roomCommands[commandName.toLocaleLowerCase()];
       if (command) {
         command(player, commandName, params);
         return true;
       }
     }
 
-    let command = this.globalCommands[commandName];
+    const command = this.globalCommands[commandName];
 
     if (command) {
       command(player, commandName, params);
@@ -769,7 +773,7 @@ export class ETTServer {
 
     if (message.msg.startsWith('/')) {
       let params = message.msg.split(' ');
-      let command = params[0].substring(1);
+      const command = params[0].substring(1);
 
       params = params.slice(1);
 
@@ -801,7 +805,7 @@ export class ETTServer {
           );
           return;
         }
-        let r = player.room;
+        const r = player.room;
         player.room.players.forEach((pl: Player) => {
           pl.sendChat(
             ROOM_MESSAGE,
@@ -820,6 +824,9 @@ export class ETTServer {
         break;
       case PRIVATE_MESSAGE: // pm (tabname=user to send to)
         this.pm(player, message.tab, message.msg);
+        break;
+      default:
+        console.log('unknown msg type: {}', message.msgtype);
         break;
     }
   }

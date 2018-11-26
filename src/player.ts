@@ -59,7 +59,7 @@ export class Player {
   }
 
   send(message: GenericMessage) {
-    message['id'] = this.ws.msgId;
+    message.id = this.ws.msgId;
     this.ws.msgId = this.ws.msgId + 1;
 
     this.ws.send(JSON.stringify(message));
