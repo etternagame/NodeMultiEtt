@@ -5,6 +5,10 @@
   "rules": {
     "prettier/prettier": ["error"],
     "no-console": 0,
+    "import/no-unresolved": "off",
+    "import/extensions": "off",
+    "no-unused-vars": "off",
+    "global-require": "off",
     "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
     "no-param-reassign": ["error", { "props": false }],
     "unicorn/filename-case": [

@@ -4,6 +4,7 @@ import * as mongodbD from 'mongodb';
 import * as express from 'express';
 import * as discord from 'discord.js';
 import * as request from 'request';
+import { userInfo } from 'os';
 
 import { Player } from './player';
 
@@ -22,7 +23,6 @@ import {
   LoginMessage,
   ChatMessage
 } from './messages';
-import { userInfo } from 'os';
 
 // Bcrypt default salt rounds
 const saltRounds = 10;
