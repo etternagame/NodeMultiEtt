@@ -39,7 +39,7 @@ try {
   // eslint-disable-next-line global-require
   SocketServer = require('uws').Server;
 } catch (e) {
-  logger.warn('Require uws failed, trying ws');
+  logger.warn('Require uws failed, trying ws ('+JSON.stringify(e)+')');
   // eslint-disable-next-line global-require
   SocketServer = require('ws').Server;
 }
