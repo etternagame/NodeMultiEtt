@@ -136,7 +136,7 @@ export class ETTServer {
     this.pingInterval = params.pingInterval || 15000;
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
     this.globalCommands = this.makeGlobalCommands();
-    this.roomCommands = this.makeRoomCommands();
+    this.roomCommands = ETTServer.makeRoomCommands();
     this.globalPermissions = {};
 
     this.messageHandlers = {
@@ -144,20 +144,20 @@ export class ETTServer {
       leaveroom: params.handlers.onLeaveRoom || this.onLeaveRoom,
       createroom: params.handlers.onCreateRoom || this.onCreateRoom,
       enterroom: params.handlers.onEnterRoom || this.onEnterRoom,
-      ping: params.handlers.onPing || this.onPing,
+      ping: params.handlers.onPing || ETTServer.onPing,
       chat: params.handlers.onChat || this.onChat,
-      selectchart: params.handlers.onSelectChart || this.onSelectChart,
+      selectchart: params.handlers.onSelectChart || ETTServer.onSelectChart,
       startchart: params.handlers.onStartChart || this.onStartChart,
       gameover: params.handlers.onGameOver || this.onGameOver,
-      haschart: params.handlers.onHasChart || this.onHasChart,
-      missingchart: params.handlers.onMissingChart || this.onMissingChart,
+      haschart: params.handlers.onHasChart || ETTServer.onHasChart,
+      missingchart: params.handlers.onMissingChart || ETTServer.onMissingChart,
       startingchart: params.handlers.onStartingChart || this.onStartingChart,
       leaveoptions: params.handlers.onLeaveOptions || this.onLeaveOptions,
       enteroptions: params.handlers.onEnterOptions || this.onEnterOptions,
-      logout: params.handlers.onLogout || this.onLogout,
+      logout: params.handlers.onLogout || ETTServer.onLogout,
       entereval: params.handlers.onEnterEval || this.onEnterEval,
       leaveeval: params.handlers.onLeaveEval || this.onLeaveEval,
-      score: params.handlers.onScore || this.onScore
+      score: params.handlers.onScore || ETTServer.onScore
     };
 
     // server
@@ -229,7 +229,7 @@ export class ETTServer {
     };
   }
 
-  makeRoomCommands() {
+  static makeRoomCommands() {
     return {
       shrug: (player: Player) => {
         Room.playerShrugs(player);
@@ -497,11 +497,11 @@ export class ETTServer {
     }, this.pingInterval);
   }
 
-  onLogout() {
+  static onLogout() {
     // TODO
   }
 
-  onSelectChart(player: Player, message: ChartMessage) {
+  static onSelectChart(player: Player, message: ChartMessage) {
     if (!player.room) {
       player.sendPM(`${systemPrepend}You're not in a room`);
       return;
@@ -646,7 +646,7 @@ export class ETTServer {
     this.leaveRoom(player);
   }
 
-  onHasChart() {}
+  static onHasChart() {}
 
   onStartingChart(player: Player) {
     player.state = 1;
@@ -686,14 +686,14 @@ export class ETTServer {
     this.updateRoomState(player.room);
   }
 
-  onScore(player: Player, message: GenericMessage) {
+  static onScore(player: Player, message: GenericMessage) {
     if (!player.user || !player.room) {
       return;
     }
 
     player.room.send(makeMessage('score', { name: player.user, score: message }));
   }
-  onMissingChart(player: Player) {
+  static onMissingChart(player: Player) {
     if (!player.user || !player.room) return;
     if (player.room) {
       player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
@@ -753,7 +753,7 @@ export class ETTServer {
     }
   }
 
-  onPing(player: Player) {
+  static onPing(player: Player) {
     if (player.ws.pingsToAnswer > 0) {
       player.ws.pingsToAnswer -= 1;
     }
@@ -776,7 +776,7 @@ export class ETTServer {
     }
     return false;
   }
-  getUserColor(player: Player, room: Room) {
+  static getUserColor(player: Player, room: Room) {
     if (player.user === room.owner.user) {
       return ownerColor;
     } else if (room.ops.find((x: string) => x === player.user)) {
@@ -826,7 +826,7 @@ export class ETTServer {
         }
         const r = player.room;
 
-        const userColor = this.getUserColor(player, r);
+        const userColor = ETTServer.getUserColor(player, r);
 
         player.room.players.forEach((pl: Player) => {
           pl.sendChat(
