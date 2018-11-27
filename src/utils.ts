@@ -25,18 +25,6 @@ export const selectionModes: { [index: number]: (ch: Chart) => object } = {
   })
 };
 
-export function unauthorizedChat(player: Player, operator: boolean = false) {
-  if (!player.room) {
-    // TODO
-    // The player is not in a room, but managed to instance a room command - idk how you
-    // would want to deal with this.
-  } else if (operator) {
-    player.sendChat(1, `${systemPrepend}You are not room owner or operator.`, player.room.name);
-  } else {
-    player.sendChat(1, `${systemPrepend}You are not room owner`, player.room.name);
-  }
-}
-
 export function removeMultiColor(s: string) {
   return s.replace(/(\|c[0-9A-Fa-f]{7}(\s*))*(\|c[0-9A-Fa-f]{7})/g, '$2$3');
 }
@@ -50,16 +38,30 @@ export const ownerColor = 'BBFFBB';
 export const playerColor = 'AAFFFF';
 export const opColor = 'FFBBBB';
 
+export function unauthorizedChat(player: Player, operator: boolean = false) {
+  if (!player.room) {
+    // TODO
+    // The player is not in a room, but managed to instance a room command - idk how you
+    // would want to deal with this.
+  } else if (operator) {
+    player.sendChat(1, `${systemPrepend}You are not room owner or operator.`, player.room.name);
+  } else {
+    player.sendChat(1, `${systemPrepend}You are not room owner`, player.room.name);
+  }
+}
+
 export const stringToColour = function(str: string) {
   let hash = 0;
 
   for (let i = 0; i < str.length; i++) {
+    // eslint-disable-next-line no-bitwise
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
 
   let colour = '';
   for (let i = 0; i < 3; i++) {
-    let value = (hash >> (i * 8)) & 0xff;
+    // eslint-disable-next-line no-bitwise
+    const value = (hash >> (i * 8)) & 0xFF;
     colour += ('00' + value.toString(16)).substr(-2);
   }
 

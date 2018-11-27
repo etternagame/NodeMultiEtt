@@ -12,7 +12,6 @@
         "case": "camelCase"
       }
     ],
-    "no-console": "off",
     "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
     "no-param-reassign": ["error", { "props": false }]
   },
