@@ -4,9 +4,9 @@ import * as mongodbD from 'mongodb';
 import * as express from 'express';
 import * as discord from 'discord.js';
 import * as request from 'request';
-import { userInfo } from 'os';
+import { createLogger, format, transports } from 'winston';
 
-import { Player } from './player';
+import Player from './player';
 
 import { Room, SerializedRoom } from './room';
 
@@ -27,12 +27,20 @@ import {
 // Bcrypt default salt rounds
 const saltRounds = 10;
 
+const logger = createLogger({
+  format: format.simple(),
+  transports: [new transports.Console()]
+});
+
 let SocketServer: any = null;
 
+// TODO make these use import
 try {
+  // eslint-disable-next-line global-require
   SocketServer = require('uws').Server;
 } catch (e) {
-  console.log('Require uws failed, trying ws');
+  logger.warn('Require uws failed, trying ws ('+JSON.stringify(e)+')');
+  // eslint-disable-next-line global-require
   SocketServer = require('ws').Server;
 }
 
@@ -128,7 +136,7 @@ export class ETTServer {
     this.pingInterval = params.pingInterval || 15000;
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
     this.globalCommands = this.makeGlobalCommands();
-    this.roomCommands = this.makeRoomCommands();
+    this.roomCommands = ETTServer.makeRoomCommands();
     this.globalPermissions = {};
 
     this.messageHandlers = {
@@ -136,20 +144,20 @@ export class ETTServer {
       leaveroom: params.handlers.onLeaveRoom || this.onLeaveRoom,
       createroom: params.handlers.onCreateRoom || this.onCreateRoom,
       enterroom: params.handlers.onEnterRoom || this.onEnterRoom,
-      ping: params.handlers.onPing || this.onPing,
+      ping: params.handlers.onPing || ETTServer.onPing,
       chat: params.handlers.onChat || this.onChat,
-      selectchart: params.handlers.onSelectChart || this.onSelectChart,
+      selectchart: params.handlers.onSelectChart || ETTServer.onSelectChart,
       startchart: params.handlers.onStartChart || this.onStartChart,
       gameover: params.handlers.onGameOver || this.onGameOver,
-      haschart: params.handlers.onHasChart || this.onHasChart,
-      missingchart: params.handlers.onMissingChart || this.onMissingChart,
+      haschart: params.handlers.onHasChart || ETTServer.onHasChart,
+      missingchart: params.handlers.onMissingChart || ETTServer.onMissingChart,
       startingchart: params.handlers.onStartingChart || this.onStartingChart,
       leaveoptions: params.handlers.onLeaveOptions || this.onLeaveOptions,
       enteroptions: params.handlers.onEnterOptions || this.onEnterOptions,
-      logout: params.handlers.onLogout || this.onLogout,
+      logout: params.handlers.onLogout || ETTServer.onLogout,
       entereval: params.handlers.onEnterEval || this.onEnterEval,
       leaveeval: params.handlers.onLeaveEval || this.onLeaveEval,
-      score: params.handlers.onScore || this.onScore
+      score: params.handlers.onScore || ETTServer.onScore
     };
 
     // server
@@ -161,10 +169,10 @@ export class ETTServer {
       next();
     });
     if (!params.ip)
-      this.server = app.listen(this.port, () => console.log(`Listening on ${this.port}`));
+      this.server = app.listen(this.port, () => logger.info(`Listening on ${this.port}`));
     else
       this.server = app.listen(this.port, params.ip, () =>
-        console.log(`Listening on ${this.port}`)
+        logger.info(`Listening on ${this.port}`)
       );
     this.wss = new SocketServer({ server: this.server });
 
@@ -186,7 +194,7 @@ export class ETTServer {
       const serv = this;
 
       this.discordClient.on('ready', () => {
-        console.log(`Discord logged in as ${this.discordClient.user.tag}!`);
+        logger.info(`Discord logged in as ${this.discordClient.user.tag}!`);
         serv.discordChannel = serv.discordClient.guilds
           .get(serv.discordGuildId)
           .channels.get(serv.discordChannelId);
@@ -209,7 +217,6 @@ export class ETTServer {
       });
     }
   }
-
   makeGlobalCommands() {
     return {
       pm: (player: Player, command: string, params: string[]) => {
@@ -222,25 +229,25 @@ export class ETTServer {
     };
   }
 
-  makeRoomCommands() {
+  static makeRoomCommands() {
     return {
-      shrug: (player: Player, command: string, params: string[]) => {
-        Room.playerShrugs(player, command, params);
+      shrug: (player: Player) => {
+        Room.playerShrugs(player);
       },
       countdown: (player: Player, command: string, params: string[]) => {
         Room.enableCountdown(player, command, params);
       },
-      help: (player: Player, command: string, params: string[]) => {
-        Room.help(player, command, params);
+      help: (player: Player) => {
+        Room.help(player);
       },
-      stop: (player: Player, command: string, params: string[]) => {
+      stop: (player: Player) => {
         Room.stopTimer(player);
       },
-      free: (player: Player, command: string, params: string[]) => {
-        Room.freeMode(player, command, params);
+      free: (player: Player) => {
+        Room.freeMode(player);
       },
-      freerate: (player: Player, command: string, params: string[]) => {
-        Room.freeRate(player, command, params);
+      freerate: (player: Player) => {
+        Room.freeRate(player);
       },
       selectionMode: (player: Player, command: string, params: string[]) => {
         Room.selectionMode(player, command, params);
@@ -289,7 +296,7 @@ export class ETTServer {
       this.db
         .collection('accounts')
         .insert({ user: player.user, pass: player.pass }, (err: any, records: any) => {
-          console.log(`Created account for user ${records.ops[0].user}`);
+          logger.info(`Created account for user ${records.ops[0].user}`);
         });
       return;
     }
@@ -303,11 +310,11 @@ export class ETTServer {
       (err, client) => {
         if (err || !client) {
           this.connectionFailed = true;
-          console.log(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
+          logger.error(`mongodb reconnection failed to ${this.mongoDBURL} error: ${err}`);
           return;
         }
 
-        console.log('Reconnected to mongodb');
+        logger.debug('Reconnected to mongodb');
 
         // Add new user
         this.db = client.db(this.mongoDBName);
@@ -315,7 +322,7 @@ export class ETTServer {
         this.db
           .collection('accounts')
           .insert({ user: player.user, pass: player.pass }, (error, records) => {
-            console.log(`Created account for user ${records.ops[0].user}`);
+            logger.info(`Created account for user ${records.ops[0].user}`);
           });
       }
     );
@@ -365,11 +372,11 @@ export class ETTServer {
       (err, client) => {
         if (err || !client) {
           this.dbConnectionFailed = true;
-          console.log(`mongodb connection failed to ${this.mongoDBURL} error: ${err}`);
+          logger.error(`mongodb connection failed to ${this.mongoDBURL} error: ${err}`);
           return;
         }
 
-        console.log('Connected to mongodb');
+        logger.info('Connected to mongodb');
 
         this.db = client.db(this.mongoDBName);
         const collection = this.db.collection('accounts');
@@ -381,7 +388,7 @@ export class ETTServer {
             this.accountList.push(account);
           },
           error => {
-            // done or error
+            logger.error(error);
           }
         );
         this.db
@@ -415,9 +422,9 @@ export class ETTServer {
         ws.send = (str: string) => {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
-            console.log(`out: ${str}`);
+            logger.debug(`out: ${str}`);
           } else {
-            console.log(`Connection closed so msg not sent: ${str}`);
+            logger.debug(`Connection closed so msg not sent: ${str}`);
           }
         };
       } else {
@@ -425,12 +432,13 @@ export class ETTServer {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
           } else {
-            console.log(`Connection closed so msg not sent: ${str}`);
+            logger.debug(`Connection closed so msg not sent: ${str}`);
           }
         };
       }
 
-      console.log(`Client connected (${ws._socket.remoteAddress})`);
+      // eslint-disable-next-line no-underscore-dangle
+      logger.info(`Client connected (${ws._socket.remoteAddress})`);
       ws.player = this.addPlayer('', '', ws);
 
       // Send server version and name
@@ -446,13 +454,14 @@ export class ETTServer {
       ws.player.sendRoomList(this.currentRooms.map(r => r.serialize()));
 
       ws.on('close', () => {
-        console.log(`Client disconnected (${ws._socket.remoteAddress})`);
+        // eslint-disable-next-line no-underscore-dangle
+        logger.info(`Client disconnected (${ws._socket.remoteAddress})`);
         this.removePlayer(ws.player);
       });
 
       ws.on('message', (strMessage: string) => {
         if (this.logPackets) {
-          console.log(`in: ${strMessage}`);
+          logger.debug(`in: ${strMessage}`);
         }
 
         const message = JSON.parse(strMessage);
@@ -470,7 +479,8 @@ export class ETTServer {
     setInterval(() => {
       this.wss.clients.forEach(ws => {
         if (ws.pingsToAnswer >= this.pingCountToDisconnect) {
-          console.log(
+          logger.debug(
+            // eslint-disable-next-line no-underscore-dangle
             `Terminating connection(${ws._socket.remoteAddress}) because ping was not answered`
           );
 
@@ -482,15 +492,16 @@ export class ETTServer {
         }
 
         ws.pingsToAnswer += 1;
+        return true;
       });
     }, this.pingInterval);
   }
 
-  onLogout(player: Player) {
+  static onLogout() {
     // TODO
   }
 
-  onSelectChart(player: Player, message: ChartMessage) {
+  static onSelectChart(player: Player, message: ChartMessage) {
     if (!player.room) {
       player.sendPM(`${systemPrepend}You're not in a room`);
       return;
@@ -628,35 +639,35 @@ export class ETTServer {
     }
   }
 
-  onLeaveRoom(player: Player, message: RoomMessage) {
+  onLeaveRoom(player: Player) {
     if (!player.user) {
       return;
     }
     this.leaveRoom(player);
   }
 
-  onHasChart(player: Player, message: ChartMessage) {}
+  static onHasChart() {}
 
-  onStartingChart(player: Player, message: ChartMessage) {
+  onStartingChart(player: Player) {
     player.state = 1;
     this.updateRoomState(player.room);
   }
 
-  onEnterOptions(player: Player, message: GenericMessage) {
+  onEnterOptions(player: Player) {
     player.state = 3;
     this.updateRoomState(player.room);
   }
 
-  onLeaveOptions(player: Player, message: GenericMessage) {
+  onLeaveOptions(player: Player) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
-  onEnterEval(player: Player, message: GenericMessage) {
+  onEnterEval(player: Player) {
     player.state = 2;
     this.updateRoomState(player.room);
   }
 
-  onLeaveEval(player: Player, message: GenericMessage) {
+  onLeaveEval(player: Player) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
@@ -670,19 +681,19 @@ export class ETTServer {
     }
   }
 
-  onGameOver(player: Player, message: GenericMessage) {
+  onGameOver(player: Player) {
     player.state = 0;
     this.updateRoomState(player.room);
   }
 
-  onScore(player: Player, message: GenericMessage) {
+  static onScore(player: Player, message: GenericMessage) {
     if (!player.user || !player.room) {
       return;
     }
 
     player.room.send(makeMessage('score', { name: player.user, score: message }));
   }
-  onMissingChart(player: Player, message: GenericMessage) {
+  static onMissingChart(player: Player) {
     if (!player.user || !player.room) return;
     if (player.room) {
       player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
@@ -742,7 +753,7 @@ export class ETTServer {
     }
   }
 
-  onPing(player: Player, message: GenericMessage) {
+  static onPing(player: Player) {
     if (player.ws.pingsToAnswer > 0) {
       player.ws.pingsToAnswer -= 1;
     }
@@ -764,6 +775,14 @@ export class ETTServer {
       return true;
     }
     return false;
+  }
+  static getUserColor(player: Player, room: Room) {
+    if (player.user === room.owner.user) {
+      return ownerColor;
+    } else if (room.ops.find((x: string) => x === player.user)) {
+      return opColor;
+    }
+    return playerColor;
   }
 
   onChat(player: Player, message: ChatMessage) {
@@ -794,9 +813,9 @@ export class ETTServer {
         if (this.useDiscord) {
           this.discordChannel.send(`${player.user}: ${message.msg}`);
         }
-
         break;
-      case ROOM_MESSAGE: // room (people in room)
+      case ROOM_MESSAGE: {
+        // room (people in room)
         if (!player.room || player.room.name !== message.tab) {
           player.sendChat(
             ROOM_MESSAGE,
@@ -806,27 +825,24 @@ export class ETTServer {
           return;
         }
         const r = player.room;
+
+        const userColor = ETTServer.getUserColor(player, r);
+
         player.room.players.forEach((pl: Player) => {
           pl.sendChat(
             ROOM_MESSAGE,
-            `${colorize(
-              player.user,
-              player.user === r.owner.user
-                ? ownerColor
-                : r.ops.find((x: string) => x === player.user)
-                  ? opColor
-                  : playerColor
-            )}: ${message.msg}`,
+            `${colorize(player.user, userColor)}: ${message.msg}`,
             message.tab
           );
         });
 
         break;
+      }
       case PRIVATE_MESSAGE: // pm (tabname=user to send to)
         this.pm(player, message.tab, message.msg);
         break;
       default:
-        console.log('unknown msg type: {}', message.msgtype);
+        logger.error('unknown msg type: {}', message.msgtype);
         break;
     }
   }

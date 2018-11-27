@@ -1,5 +1,7 @@
-import { Chart } from './chart';
-import { Player } from './player';
+import { createLogger, format, transports } from 'winston';
+
+import Chart from './chart';
+import Player from './player';
 
 import { makeMessage, ChartMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
@@ -12,6 +14,11 @@ import {
   stringToColour,
   unauthorizedChat
 } from './utils';
+
+const logger = createLogger({
+  format: format.simple(),
+  transports: [new transports.Console()]
+});
 
 export interface SerializedRoom {
   name: string;
@@ -77,7 +84,7 @@ export class Room {
   startChart(player: Player, message: ChartMessage) {
     if (this.countdown === true) {
       Promise.resolve(this.startTimer(this.timerLimit)).then(() => {
-        let chart: Chart = new Chart(message, player);
+        const chart: Chart = new Chart(message, player);
 
         // Use the selectionMode criteria
         const newChart = this.serializeChart(chart);
@@ -101,7 +108,7 @@ export class Room {
         this.playing = true;
       });
     } else {
-      let chart: Chart = new Chart(message, player);
+      const chart: Chart = new Chart(message, player);
 
       // Use the selectionMode criteria
       const newChart = this.serializeChart(chart);
@@ -140,7 +147,6 @@ export class Room {
         )
     );
   }
-
   refreshUserList() {
     this.send(
       makeMessage('userlist', {
@@ -206,7 +212,7 @@ export class Room {
 
   changeOwner() {
     if (this.ops.length > 0) {
-      let operatorPlayers = this.players.filter(p =>
+      const operatorPlayers = this.players.filter(p =>
         this.ops.find(opUsername => opUsername === p.user)
       );
 
@@ -224,13 +230,13 @@ export class Room {
     return (
       this.free ||
       player === this.owner ||
-      this.ops.some(operatorInList => operatorInList == player.user)
+      this.ops.some(operatorInList => operatorInList === player.user)
     );
   }
 
   canStart() {
     let err: string | null = null;
-    let nonReady: Player[] = [];
+    const nonReady: Player[] = [];
 
     this.players.forEach(pl => {
       if (pl.state !== 0) {
@@ -241,7 +247,7 @@ export class Room {
     if (nonReady.length > 0) {
       err = 'Players ';
       nonReady.forEach(pl => {
-        err = err + pl.user + ', ';
+        err = `${err} ${pl.user}, `;
       });
       err = `${err.substring(0, err.length - 2)} are busy`;
     }
@@ -253,11 +259,11 @@ export class Room {
     this.players = this.players.filter(x => x.user !== player.user);
   }
 
-  static freeMode(player: Player, command: string, params: string[]) {
+  static freeMode(player: Player) {
     if (player.room) {
       if (
         player.room.owner.user === player.user ||
-        player.room.ops.some(operatorInList => operatorInList == player.user)
+        player.room.ops.some(operatorInList => operatorInList === player.user)
       ) {
         player.room.free = !player.room.free;
         player.room.sendChat(
@@ -269,18 +275,18 @@ export class Room {
         unauthorizedChat(player, true);
       }
     } else {
-      //TODO
+      // TODO
     }
   }
 
-  static freeRate(player: Player, command: string, params: string[]) {
+  static freeRate(player: Player) {
     if (!player.room) {
-      //TODO
+      // TODO
       return;
     }
     if (
-      player.room.owner.user == player.user ||
-      player.room.ops.some(operatorInList => operatorInList == player.user)
+      player.room.owner.user === player.user ||
+      player.room.ops.some(operatorInList => operatorInList === player.user)
     ) {
       player.room.freerate = !player.room.freerate;
 
@@ -294,7 +300,7 @@ export class Room {
 
   static selectionMode(player: Player, command: string, params: string[]) {
     if (!player.room) {
-      //TODO
+      // TODO
       return;
     }
 
@@ -324,12 +330,12 @@ export class Room {
 
   static roll(player: Player, command: string, params: string[]) {
     if (!player.room) {
-      //TODO
+      // TODO
       return;
     }
 
-    if (!isNaN(parseInt(params[0]))) {
-      let rolledNumber = Math.floor(Math.random() * (parseInt(params[0]) - 0) + 0);
+    if (!Number.isNaN(parseInt(params[0], 10))) {
+      const rolledNumber = Math.floor(Math.random() * parseInt(params[0], 10));
 
       player.room.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
     } else {
@@ -341,7 +347,7 @@ export class Room {
 
   static op(player: Player, command: string, params: string[]) {
     if (!player.room) {
-      //TODO
+      // TODO
       return;
     }
     if (player.room.owner.user === player.user) {
@@ -362,22 +368,22 @@ export class Room {
     }
   }
 
-  static playerShrugs(player: Player, command: string, params: string[]) {
+  static playerShrugs(player: Player) {
     if (!player.room) {
-      console.log('Trying to send shrug for roomless player ' + player.user);
+      logger.error(`Trying to send shrug for roomless player ${player.user}`);
       return;
     }
     player.room.sendChat(`${colorize(player.user, playerColor)}: ¯\\_(ツ)_/¯`);
   }
 
   startTimer(limit: number) {
-    if (this.countdownStarted == true) {
+    if (this.countdownStarted === true) {
       return false;
     }
 
     this.countdownStarted = !this.countdownStarted;
 
-    return new Promise((resolve, reject) => {
+    return new Promise(resolve => {
       let currentTimer: number = limit;
 
       this.timerInterval = setInterval(() => {
@@ -396,7 +402,7 @@ export class Room {
 
   static stopTimer(player: Player) {
     if (!player.room) {
-      console.log('Trying to stop timer for roomless player ' + player.user);
+      logger.error(`Trying to stop timer for roomless player ${player.user}`);
       return;
     }
 
@@ -406,13 +412,13 @@ export class Room {
     clearInterval(player.room.timerInterval);
   }
 
-  static help(player: Player, command: string, params: string[]) {
+  static help(player: Player) {
     if (!player.room) {
-      console.log('Trying to get help for a roomless player ' + player.user);
+      logger.error(`Trying to get help for a roomless player ${player.user}`);
       return;
     }
 
-    var helpMessage = `
+    const helpMessage = `
       Commands:\n
         /free - Enable free mode allows anyone to choose a chart (Privileged)\n
         /freerate - Enable free rate allowing people to play any rate the want (Privileged)\n
@@ -429,7 +435,7 @@ export class Room {
 
   static enableCountdown(player: Player, command: string, params: string[]) {
     if (!player.room) {
-      console.log('Trying to enable countdown for roomless player ' + player.user);
+      logger.error(`Trying to enable countdown for roomless player ${player.user}`);
       return;
     }
     if (player.room.countdown === true) {

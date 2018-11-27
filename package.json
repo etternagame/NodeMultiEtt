@@ -27,6 +27,7 @@
     "request": "^2.85.0",
     "typescript": "^2.9.2",
     "uws": "^9.148.0",
+    "winston": "^3.1.0",
     "ws": "^5.0.0"
   },
   "devDependencies": {
