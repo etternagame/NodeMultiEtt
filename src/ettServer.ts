@@ -39,7 +39,7 @@ try {
   // eslint-disable-next-line global-require
   SocketServer = require('uws').Server;
 } catch (e) {
-  logger.warn('Require uws failed, trying ws ('+JSON.stringify(e)+')');
+  logger.warn('Require uws failed, trying ws (' + JSON.stringify(e) + ')');
   // eslint-disable-next-line global-require
   SocketServer = require('ws').Server;
 }
@@ -715,7 +715,7 @@ export class ETTServer {
 
     if (!existingRoom) {
       player.room = this.addRoom(message, player);
-      player.send(makeMessage('createroom', { created: true }));
+      player.send(makeMessage('newroom', { room: player.room.serialize() }));
       player.sendChat(
         ROOM_MESSAGE,
         `${systemPrepend} Created room "${message.name}"`,
