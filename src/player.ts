@@ -17,6 +17,7 @@ export class Player {
   pass: string;
   ws: EWebSocket;
   state: number;
+  readystate: boolean;
   gameplayState: {
     wife: number;
     user: string;
@@ -27,6 +28,7 @@ export class Player {
     this.pass = _pass;
     this.ws = _ws;
     this.state = READY;
+    this.readystate = false;
     this.room = null;
     this.gameplayState = { wife: 0, user: _user };
   }
@@ -78,6 +80,14 @@ export class Player {
 
   serialize() {
     return this.user;
+  }
+
+  toggleReady() {
+    if (this.readystate === true) {
+      this.readystate = false;
+    } else {
+      this.readystate = true;
+    }
   }
 }
 

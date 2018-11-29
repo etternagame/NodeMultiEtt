@@ -236,6 +236,9 @@ export class ETTServer {
       shrug: (player: Player) => {
         Room.playerShrugs(player);
       },
+      ready: (player: Player) => {
+        player.toggleReady();
+      },
       countdown: (player: Player, command: string, params: string[]) => {
         Room.enableCountdown(player, command, params);
       },

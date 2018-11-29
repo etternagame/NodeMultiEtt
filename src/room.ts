@@ -1,17 +1,17 @@
 import { createLogger, format, transports } from 'winston';
 
 import Chart from './chart';
-import { Player, READY, PLAYING } from './player';
+import { NOTREADY, Player, PLAYING, READY } from './player';
 
-import { makeMessage, ChartMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
+import { ChartMessage, GenericMessage, makeMessage, PRIVATE_MESSAGE } from './messages';
 
 import {
   colorize,
   playerColor,
-  systemPrepend,
   selectionModeDescriptions,
   selectionModes,
   stringToColour,
+  systemPrepend,
   unauthorizedChat
 } from './utils';
 
@@ -67,6 +67,18 @@ export class Room {
     this.timerLimit = 0;
   }
 
+  checkPlayersReady(): Boolean | Player {
+    let ready: Boolean | Player = true;
+    this.players.forEach((player: Player) => {
+      if (player.readystate === false) {
+        ready = player;
+      } else {
+        ready = true;
+      }
+    });
+    return ready;
+  }
+
   serializeChart(chart: Chart | null = this.chart) {
     if (!chart) return {};
 
@@ -85,6 +97,13 @@ export class Room {
   }
 
   startChart(player: Player, message: ChartMessage) {
+    const ready: Boolean | Player = this.checkPlayersReady();
+
+    if (ready instanceof Player) {
+      if (ready !== null) this.sendChat(`${systemPrepend} ${ready.user} is not ready.`);
+      return;
+    }
+
     if (this.countdown === true) {
       Promise.resolve(this.startTimer(this.timerLimit)).then(() => {
         const chart: Chart = new Chart(message, player);
