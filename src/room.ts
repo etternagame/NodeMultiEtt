@@ -1,7 +1,7 @@
 import { createLogger, format, transports } from 'winston';
 
 import Chart from './chart';
-import Player from './player';
+import { Player, READY } from './player';
 
 import { makeMessage, ChartMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
@@ -27,6 +27,9 @@ export interface SerializedRoom {
   pass: boolean;
   state: number;
 }
+
+export const SELECTING = 0;
+export const INGAME = 1;
 
 export class Room {
   name: string;
@@ -56,7 +59,7 @@ export class Room {
     this.countdown = false; // No countdown before song start
     this.countdownStarted = false;
     this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
-    this.state = 0; // Selecting(0), Playing(1)
+    this.state = SELECTING;
     this.chart = null;
     this.freerate = false; // Free rate decides if only the owner can select the chart rate
     this.playing = false;
@@ -100,7 +103,7 @@ export class Room {
         }
 
         this.chart = chart;
-        this.state = 1;
+        this.state = INGAME;
 
         this.send(makeMessage('startchart', { chart: newChart }));
         this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
@@ -124,7 +127,7 @@ export class Room {
       }
 
       this.chart = chart;
-      this.state = 1;
+      this.state = INGAME;
 
       this.send(makeMessage('startchart', { chart: newChart }));
       this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
@@ -163,7 +166,7 @@ export class Room {
     player.send(makeMessage('enterroom', { entered: true }));
     this.sendChat(`${systemPrepend}${player.user} joined`);
 
-    player.state = 0;
+    player.state = READY;
 
     if (this.chart) player.send(makeMessage('selectchart', { chart: this.serializeChart() }));
   }
@@ -180,11 +183,11 @@ export class Room {
 
   updateStatus() {
     // const oldState = this.state;
-    this.state = 0;
+    this.state = SELECTING;
 
     this.players.some(pl => {
-      if (pl.state !== 0) {
-        this.state = 1;
+      if (pl.state !== READY) {
+        this.state = INGAME;
         return true;
       }
       return false;
@@ -192,7 +195,7 @@ export class Room {
 
     this.refreshUserList();
 
-    if (this.state === 0 && this.playing) {
+    if (this.state === SELECTING && this.playing) {
       this.playing = false;
       this.chart = null;
     }
@@ -239,7 +242,7 @@ export class Room {
     const nonReady: Player[] = [];
 
     this.players.forEach(pl => {
-      if (pl.state !== 0) {
+      if (pl.state !== READY) {
         nonReady.push(pl);
       }
     });

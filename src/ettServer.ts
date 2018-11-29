@@ -6,7 +6,7 @@ import * as discord from 'discord.js';
 import * as request from 'request';
 import { createLogger, format, transports } from 'winston';
 
-import Player from './player';
+import { Player, OPTIONS, READY, PLAYING, EVAL } from './player';
 
 import { Room, SerializedRoom } from './room';
 
@@ -661,26 +661,26 @@ export class ETTServer {
   static onHasChart() {}
 
   onStartingChart(player: Player) {
-    player.state = 1;
+    player.state = PLAYING;
     this.updateRoomState(player.room);
   }
 
   onEnterOptions(player: Player) {
-    player.state = 3;
+    player.state = OPTIONS;
     this.updateRoomState(player.room);
   }
 
   onLeaveOptions(player: Player) {
-    player.state = 0;
+    player.state = READY;
     this.updateRoomState(player.room);
   }
   onEnterEval(player: Player) {
-    player.state = 2;
+    player.state = EVAL;
     this.updateRoomState(player.room);
   }
 
   onLeaveEval(player: Player) {
-    player.state = 0;
+    player.state = READY;
     this.updateRoomState(player.room);
   }
 
@@ -694,7 +694,7 @@ export class ETTServer {
   }
 
   onGameOver(player: Player) {
-    player.state = 0;
+    player.state = READY;
     this.updateRoomState(player.room);
   }
 

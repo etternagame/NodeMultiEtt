@@ -6,7 +6,13 @@ import { makeMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
 import { color, removeMultiColor } from './utils';
 
-class Player {
+export const READY = 0;
+export const PLAYING = 1;
+export const EVAL = 2;
+export const OPTIONS = 3;
+export const NOTREADY = 4;
+
+export class Player {
   user: string;
   pass: string;
   ws: EWebSocket;
@@ -16,7 +22,7 @@ class Player {
     this.user = _user;
     this.pass = _pass;
     this.ws = _ws;
-    this.state = 0; // 0 = ready, 1 = playing, 2 = evalScreen, 3 = options, 4 = notReady(unkown reason)
+    this.state = READY;
     this.room = null;
   }
 
@@ -25,7 +31,7 @@ class Player {
   }
 
   leaveRoom() {
-    this.state = 0;
+    this.state = READY;
 
     if (!this.room) {
       return null;
