@@ -67,16 +67,9 @@ export class Room {
     this.timerLimit = 0;
   }
 
-  checkPlayersReady(): Boolean | Player {
-    let ready: Boolean | Player = true;
-    this.players.forEach((player: Player) => {
-      if (player.readystate === false) {
-        ready = player;
-      } else {
-        ready = true;
-      }
-    });
-    return ready;
+  checkPlayersReady(): Array<Player> {
+    const nonReadyPlayers = this.players.filter((player: Player) => player.readystate !== true);
+    return nonReadyPlayers;
   }
 
   serializeChart(chart: Chart | null = this.chart) {
@@ -97,10 +90,12 @@ export class Room {
   }
 
   startChart(player: Player, message: ChartMessage) {
-    const ready: Boolean | Player = this.checkPlayersReady();
+    const nonReadyPlayers: Array<Player> = this.checkPlayersReady();
 
-    if (ready instanceof Player) {
-      if (ready !== null) this.sendChat(`${systemPrepend} ${ready.user} is not ready.`);
+    if (nonReadyPlayers.length > 0) {
+      nonReadyPlayers.forEach(() => {
+        this.sendChat(`${systemPrepend} ${player.user} is not ready.`);
+      });
       return;
     }
 
@@ -161,9 +156,9 @@ export class Room {
         scores: this.players
           .filter(p => p.state === PLAYING)
           .map(p => {
-            p.gameplayState.user = p.user;
-            return p.gameplayState;
-          })
+          p.gameplayState.user = p.user;
+          return p.gameplayState;
+        })
       })
     );
   }
