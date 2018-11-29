@@ -242,6 +242,11 @@ export class ETTServer {
       countdown: (player: Player, command: string, params: string[]) => {
         Room.enableCountdown(player, command, params);
       },
+      force: (player: Player) => {
+        if (player.room !== null) {
+          player.room.enableForce(player);
+        }
+      },
       help: (player: Player) => {
         Room.help(player);
       },

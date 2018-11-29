@@ -36,6 +36,7 @@ export class Room {
   desc: string;
   pass: string;
   freerate: boolean;
+  forcestart: boolean;
   playing: boolean;
   chart: Chart | null;
   free: boolean;
@@ -53,6 +54,7 @@ export class Room {
     this.desc = _desc;
     this.pass = _pass;
     this.players = [];
+    this.forcestart = false;
     this.owner = _owner;
     this.ops = [];
     this.free = false; // Free decides if only the owner can select charts
@@ -65,6 +67,28 @@ export class Room {
     this.playing = false;
     this.timerInterval = 0;
     this.timerLimit = 0;
+  }
+
+  enableForce(player: Player) {
+    if (!player.room) {
+      // TODO
+      return;
+    }
+
+    if (
+      player.room.owner.user === player.user ||
+      player.room.ops.some(operatorInList => operatorInList === player.user)
+    ) {
+      if (this.forcestart === true) {
+        this.forcestart = false;
+        this.sendChat(`${systemPrepend} force start disabled.`);
+      } else {
+        this.forcestart = true;
+        this.sendChat(`${systemPrepend} force start enabled for this song.`);
+      }
+    } else {
+      unauthorizedChat(player, true);
+    }
   }
 
   checkPlayersReady(): Array<Player> {
@@ -90,17 +114,31 @@ export class Room {
   }
 
   startChart(player: Player, message: ChartMessage) {
-    const nonReadyPlayers: Array<Player> = this.checkPlayersReady();
+    if (!this.forcestart) {
+      const nonReadyPlayers: Array<Player> = this.checkPlayersReady();
 
-    if (nonReadyPlayers.length === 1) {
-      this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
-      return;
-    } else if (nonReadyPlayers.length > 1) {
-      this.sendChat(
-        `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
-      );
-      return;
+      if (nonReadyPlayers.length === 1) {
+        this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
+        return;
+      } else if (nonReadyPlayers.length === 2) {
+        this.sendChat(
+          `${systemPrepend} ${nonReadyPlayers[0].user} and ${
+            nonReadyPlayers[1].user
+          } are not ready.`
+        );
+      } else if (nonReadyPlayers.length > 1) {
+        this.sendChat(
+          `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
+        );
+        return;
+      }
     }
+
+    this.players.forEach((p: Player) => {
+      p.readystate = false;
+    }); // Set everyone back to not ready.
+
+    this.forcestart = false; // Set force back to false
 
     if (this.countdown === true) {
       Promise.resolve(this.startTimer(this.timerLimit)).then(() => {
