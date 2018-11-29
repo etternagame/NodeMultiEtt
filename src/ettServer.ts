@@ -727,6 +727,7 @@ export class ETTServer {
 
     if (!existingRoom) {
       player.room = this.addRoom(message, player);
+      player.send(makeMessage('createroom', { created: true }));
       player.send(makeMessage('newroom', { room: player.room.serialize() }));
       player.sendChat(
         ROOM_MESSAGE,
