@@ -4,7 +4,7 @@ import { Room, SerializedRoom } from './room';
 
 import { makeMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
-import { color, removeMultiColor } from './utils';
+import { color, removeMultiColor, systemPrepend } from './utils';
 
 export const READY = 0;
 export const PLAYING = 1;
@@ -85,8 +85,14 @@ export class Player {
   toggleReady() {
     if (this.readystate === true) {
       this.readystate = false;
+      if (this.room !== null) {
+        this.room.sendChat(`${systemPrepend} ${this.user} is not ready.`);
+      }
     } else {
       this.readystate = true;
+      if (this.room !== null) {
+        this.room.sendChat(`${systemPrepend} ${this.user} is ready.`);
+      }
     }
   }
 }
