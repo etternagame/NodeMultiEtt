@@ -105,7 +105,7 @@ function randomstr(n) {
   return text;
 }
 var i;
-const players = 200;
+const players = 4;
 const rooms = 300;
 const msgSize = 2;
 const msgInterval = 10000;
