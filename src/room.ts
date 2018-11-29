@@ -92,10 +92,13 @@ export class Room {
   startChart(player: Player, message: ChartMessage) {
     const nonReadyPlayers: Array<Player> = this.checkPlayersReady();
 
-    if (nonReadyPlayers.length > 0) {
-      nonReadyPlayers.forEach(() => {
-        this.sendChat(`${systemPrepend} ${player.user} is not ready.`);
-      });
+    if (nonReadyPlayers.length === 1) {
+      this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
+      return;
+    } else if (nonReadyPlayers.length > 1) {
+      this.sendChat(
+        `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
+      );
       return;
     }
 
