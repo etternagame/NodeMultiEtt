@@ -19,6 +19,7 @@ export class Player {
   state: number;
   gameplayState: {
     wife: number;
+    user: string;
   };
   room: Room | null;
   constructor(_user: string, _pass: string, _ws: EWebSocket) {
@@ -27,7 +28,7 @@ export class Player {
     this.ws = _ws;
     this.state = READY;
     this.room = null;
-    this.gameplayState = { wife: 0 };
+    this.gameplayState = { wife: 0, user: _user };
   }
 
   sendPM(msg: string) {

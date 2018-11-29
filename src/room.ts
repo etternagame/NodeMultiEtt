@@ -1,7 +1,7 @@
 import { createLogger, format, transports } from 'winston';
 
 import Chart from './chart';
-import { Player, READY } from './player';
+import { Player, READY, PLAYING } from './player';
 
 import { makeMessage, ChartMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
@@ -139,7 +139,12 @@ export class Room {
   onGameplayUpdate() {
     this.send(
       makeMessage('leaderboard', {
-        scores: this.players.map(p => p.gameplayState)
+        scores: this.players
+          .filter(p => p.state === PLAYING)
+          .map(p => {
+            p.gameplayState.user = p.user;
+            return p.gameplayState;
+          })
       })
     );
   }
