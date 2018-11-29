@@ -77,6 +77,7 @@ export interface ETTHandlers {
   onScore: ETTMessage;
   onLeaveEval: ETTMessage;
   onEnterEval: ETTMessage;
+  onGameplayUpdate: ETTMessage;
 }
 
 export interface ETTParams {
@@ -156,6 +157,7 @@ export class ETTServer {
       enteroptions: params.handlers.onEnterOptions || this.onEnterOptions,
       logout: params.handlers.onLogout || ETTServer.onLogout,
       entereval: params.handlers.onEnterEval || this.onEnterEval,
+      gameplayupdate: params.handlers.onGameplayUpdate || ETTServer.onGameplayUpdate,
       leaveeval: params.handlers.onLeaveEval || this.onLeaveEval,
       score: params.handlers.onScore || ETTServer.onScore
     };
@@ -552,6 +554,11 @@ export class ETTServer {
     } else {
       player.room.sendChat(`${systemPrepend}Cant start (${err})`);
     }
+  }
+
+  static onGameplayUpdate(player: Player, message: GenericMessage) {
+    player.gameplayState.wife = message.wife;
+    if (player.room) player.room.onGameplayUpdate();
   }
 
   onLogin(player: Player, message: GenericMessage) {

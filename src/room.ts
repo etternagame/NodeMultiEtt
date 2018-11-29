@@ -136,18 +136,25 @@ export class Room {
     }
   }
 
+  onGameplayUpdate() {
+    this.send(
+      makeMessage('leaderboard', {
+        scores: this.players.map(p => p.gameplayState)
+      })
+    );
+  }
+
   selectChart(player: Player, message: ChartMessage) {
     this.chart = new Chart(message, player);
 
     this.send(makeMessage('selectchart', { chart: this.serializeChart() }));
     this.sendChat(
-      `${systemPrepend}${player.user} selected ` +
-        colorize(
-          `${message.title} (${message.difficulty}: ${message.meter})${
-            message.rate ? ` ${parseFloat((message.rate / 1000).toFixed(2))}` : ''
-          }`,
-          stringToColour(message.title)
-        )
+      `${systemPrepend}${player.user} selected ${colorize(
+        `${message.title} (${message.difficulty}: ${message.meter})${
+          message.rate ? ` ${parseFloat((message.rate / 1000).toFixed(2))}` : ''
+        }`,
+        stringToColour(message.title)
+      )}`
     );
   }
   refreshUserList() {
