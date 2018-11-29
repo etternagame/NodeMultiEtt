@@ -39,7 +39,7 @@ try {
   // eslint-disable-next-line global-require
   SocketServer = require('uws').Server;
 } catch (e) {
-  logger.warn('Require uws failed, trying ws (' + JSON.stringify(e) + ')');
+  logger.warn(`Require uws failed, trying ws (${JSON.stringify(e)}`);
   // eslint-disable-next-line global-require
   SocketServer = require('ws').Server;
 }
@@ -295,8 +295,14 @@ export class ETTServer {
     if (this.db) {
       this.db
         .collection('accounts')
-        .insert({ user: player.user, pass: player.pass }, (err: any, records: any) => {
-          logger.info(`Created account for user ${records.ops[0].user}`);
+        .insertOne({ user: player.user, pass: player.pass }, (err, records) => {
+          if (err) {
+            logger.error(
+              `Failed mongodb insertion: ${err.name} : ${err.message} (For ${player.user})`
+            );
+          } else {
+            logger.info(`Created account for user ${records.ops[0].user}`);
+          }
         });
       return;
     }
@@ -321,8 +327,14 @@ export class ETTServer {
 
         this.db
           .collection('accounts')
-          .insert({ user: player.user, pass: player.pass }, (error, records) => {
-            logger.info(`Created account for user ${records.ops[0].user}`);
+          .insertOne({ user: player.user, pass: player.pass }, (error, records) => {
+            if (err) {
+              logger.error(
+                `Failed mongodb insertion: ${error.name} : ${error.message} (For ${player.user})`
+              );
+            } else {
+              logger.info(`Created account for user ${records.ops[0].user}`);
+            }
           });
       }
     );
