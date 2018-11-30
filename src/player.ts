@@ -31,7 +31,7 @@ export class Player {
     this.state = READY;
     this.readystate = false;
     this.room = null;
-    this.gameplayState = { wife: 0, user: _user };
+    this.gameplayState = { wife: 0, user: _user, jdgstr: "" };
   }
 
   sendPM(msg: string) {
