@@ -91,7 +91,7 @@ export class Room {
     }
   }
 
-  checkPlayersReady(playerWhoSelecte : Player): Array<Player> {
+  checkPlayersReady(playerWhoSelected : Player): Array<Player> {
     const nonReadyPlayers = this.players.filter(
       (player: Player) => player.readystate !== true && player.user !== playerWhoSelected.user
     );
