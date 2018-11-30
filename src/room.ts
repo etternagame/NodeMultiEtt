@@ -238,6 +238,8 @@ export class Room {
     player.state = READY;
 
     if (this.chart) player.send(makeMessage('selectchart', { chart: this.serializeChart() }));
+    
+    this.refreshUserList()
   }
 
   serialize(): SerializedRoom {
