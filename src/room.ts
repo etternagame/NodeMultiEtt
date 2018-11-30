@@ -97,7 +97,31 @@ export class Room {
     );
     return nonReadyPlayers;
   }
+  
+  canStart() {
+    if (this.forcestart) {
+      return true;
+    } else {
+      const nonReadyPlayers: Array<Player> = this.checkPlayersReady(player);
 
+      if (nonReadyPlayers.length === 1) {
+        this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
+        return false;
+      } else if (nonReadyPlayers.length === 2) {
+        this.sendChat(
+          `${systemPrepend} ${nonReadyPlayers[0].user} and ${
+            nonReadyPlayers[1].user
+          } are not ready.`
+        );
+      } else if (nonReadyPlayers.length > 1) {
+        this.sendChat(
+          `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
+        );
+        return false;
+      }
+    }
+    return true;
+  }
   serializeChart(chart: Chart | null = this.chart) {
     if (!chart) return {};
 
@@ -116,33 +140,15 @@ export class Room {
   }
 
   startChart(player: Player, message: ChartMessage) {
-    if (!this.forcestart) {
-      const nonReadyPlayers: Array<Player> = this.checkPlayersReady(player);
-
-      if (nonReadyPlayers.length === 1) {
-        this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
-        return;
-      } else if (nonReadyPlayers.length === 2) {
-        this.sendChat(
-          `${systemPrepend} ${nonReadyPlayers[0].user} and ${
-            nonReadyPlayers[1].user
-          } are not ready.`
-        );
-      } else if (nonReadyPlayers.length > 1) {
-        this.sendChat(
-          `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
-        );
-        return;
-      }
-    }
-
-    this.players.forEach((p: Player) => {
-      p.readystate = false;
-    }); // Set everyone back to not ready.
-
-    this.forcestart = false; // Set force back to false
 
     if (this.countdown === true) {
+      if (!this.canStart()) {
+        return;
+      }
+      this.players.forEach((p: Player) => {
+        p.readystate = false;
+      }); // Set everyone back to not ready.
+      this.forcestart = false; // Set force back to false
       Promise.resolve(this.startTimer(this.timerLimit)).then(() => {
         const chart: Chart = new Chart(message, player);
 
@@ -182,6 +188,13 @@ export class Room {
         this.selectChart(player, message);
         return;
       }
+      if (!this.canStart()) {
+        return;
+      }
+      this.players.forEach((p: Player) => {
+        p.readystate = false;
+      }); // Set everyone back to not ready.
+      this.forcestart = false; // Set force back to false
 
       this.chart = chart;
       this.state = INGAME;
