@@ -749,6 +749,7 @@ export class ETTServer {
         `${systemPrepend} Created room "${message.name}"`,
         message.name
       );
+      player.readystate = false;
     } else {
       player.send(makeMessage('createroom', { created: false }));
       player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Room name already in use`);
@@ -777,6 +778,7 @@ export class ETTServer {
         player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Incorrect password`);
       }
     else {
+      player.readystate = false;
       player.room = this.addRoom(message, player);
       player.send(makeMessage('enterroom', { entered: true }));
     }
