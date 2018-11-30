@@ -758,6 +758,7 @@ export class ETTServer {
   enterRoom(player: Player, room: Room) {
     room.enter(player);
     this.sendAll(makeMessage('updateroom', { room: room.serialize() }));
+    room.refreshUserList()
   }
 
   onEnterRoom(player: Player, message: LoginMessage) {
