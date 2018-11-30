@@ -546,7 +546,7 @@ export class ETTServer {
     }
     if (!player.room || !player.room.canSelect(player)) {
       player.sendChat(
-        PRIVATE_MESSAGE,
+        ROOM_MESSAGE,
         `${systemPrepend}You don't have the rights to start a chart!`,
         player.room.name
       );
