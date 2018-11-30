@@ -566,6 +566,7 @@ export class ETTServer {
 
   static onGameplayUpdate(player: Player, message: GenericMessage) {
     player.gameplayState.wife = message.wife;
+    player.gameplayState.jdgstr = message.jdgstr;
     if (player.room) player.room.onGameplayUpdate();
   }
 
