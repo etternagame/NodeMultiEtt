@@ -91,8 +91,10 @@ export class Room {
     }
   }
 
-  checkPlayersReady(): Array<Player> {
-    const nonReadyPlayers = this.players.filter((player: Player) => player.readystate !== true);
+  checkPlayersReady(playerWhoSelected: Player): Array<Player> {
+    const nonReadyPlayers = this.players.filter(
+      (player: Player) => player.readystate !== true && player.user !== playerWhoSelected.user
+    );
     return nonReadyPlayers;
   }
 
@@ -115,7 +117,7 @@ export class Room {
 
   startChart(player: Player, message: ChartMessage) {
     if (!this.forcestart) {
-      const nonReadyPlayers: Array<Player> = this.checkPlayersReady();
+      const nonReadyPlayers: Array<Player> = this.checkPlayersReady(player);
 
       if (nonReadyPlayers.length === 1) {
         this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
