@@ -21,6 +21,7 @@ export class Player {
   gameplayState: {
     wife: number;
     user: string;
+    jdgstr: string;
   };
   room: Room | null;
   constructor(_user: string, _pass: string, _ws: EWebSocket) {
