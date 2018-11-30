@@ -91,18 +91,18 @@ export class Room {
     }
   }
 
-  checkPlayersReady(playerWhoSelected: Player): Array<Player> {
+  checkPlayersReady(playerWhoSelecte : Player): Array<Player> {
     const nonReadyPlayers = this.players.filter(
       (player: Player) => player.readystate !== true && player.user !== playerWhoSelected.user
     );
     return nonReadyPlayers;
   }
   
-  canStart() {
+  allReady(playerWhoSelected : Player) {
     if (this.forcestart) {
       return true;
     } else {
-      const nonReadyPlayers: Array<Player> = this.checkPlayersReady(player);
+      const nonReadyPlayers: Array<Player> = this.checkPlayersReady(playerWhoSelected);
 
       if (nonReadyPlayers.length === 1) {
         this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
@@ -142,7 +142,7 @@ export class Room {
   startChart(player: Player, message: ChartMessage) {
 
     if (this.countdown === true) {
-      if (!this.canStart()) {
+      if (!this.allReady(player)) {
         return;
       }
       this.players.forEach((p: Player) => {
@@ -188,7 +188,7 @@ export class Room {
         this.selectChart(player, message);
         return;
       }
-      if (!this.canStart()) {
+      if (!this.allReady(player)) {
         return;
       }
       this.players.forEach((p: Player) => {
