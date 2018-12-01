@@ -285,6 +285,7 @@ export class ETTServer {
   }
 
   removePlayer(player: Player) {
+    this.removePlayerInLobbyLists(player);
     this.leaveRoom(player);
     this.playerList = this.playerList.filter(x => x.user !== player.user);
 
@@ -497,7 +498,7 @@ export class ETTServer {
             // eslint-disable-next-line no-underscore-dangle
             `Terminating connection(${ws._socket.remoteAddress}) because ping was not answered`
           );
-
+          this.removePlayer(ws.player);
           return ws.terminate();
         }
 
@@ -529,6 +530,24 @@ export class ETTServer {
       return;
     }
     player.room.selectChart(player, message);
+  }
+
+  sendLobbyList(player: Player) {
+    player.send(
+      makeMessage('lobbyuserlist', {
+        users: this.playerList.map(p => p.user)
+      })
+    );
+  }
+
+  removePlayerInLobbyLists(player: Player) {
+    this.playerList.forEach(p =>
+      p.send(makeMessage('lobbyuserlistupdate', { off: [player.user] }))
+    );
+  }
+
+  addPlayerInLobbyLists(player: Player) {
+    this.playerList.forEach(p => p.send(makeMessage('lobbyuserlistupdate', { on: [player.user] })));
   }
 
   onStartChart(player: Player, message: ChartMessage) {
@@ -613,6 +632,8 @@ export class ETTServer {
 
               player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(serv.serverName)}`);
               player.send(makeMessage('login', { logged: true, msg: '' }));
+              this.sendLobbyList(player);
+              this.addPlayerInLobbyLists(player);
 
               return;
             }
@@ -636,6 +657,8 @@ export class ETTServer {
             player.pass = message.pass;
             player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
             player.send(makeMessage('login', { logged: true, msg: '' }));
+            this.sendLobbyList(player);
+            this.addPlayerInLobbyLists(player);
           } else {
             player.send(
               makeMessage('login', {
@@ -653,6 +676,8 @@ export class ETTServer {
           this.createAccount(player);
           player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
+          this.sendLobbyList(player);
+          this.addPlayerInLobbyLists(player);
         });
       }
     }
