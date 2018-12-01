@@ -1,17 +1,17 @@
 import { createLogger, format, transports } from 'winston';
 
 import Chart from './chart';
-import { Player, READY, PLAYING } from './player';
+import { NOTREADY, Player, PLAYING, READY } from './player';
 
-import { makeMessage, ChartMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
+import { ChartMessage, GenericMessage, makeMessage, PRIVATE_MESSAGE } from './messages';
 
 import {
   colorize,
   playerColor,
-  systemPrepend,
   selectionModeDescriptions,
   selectionModes,
   stringToColour,
+  systemPrepend,
   unauthorizedChat
 } from './utils';
 
@@ -36,6 +36,7 @@ export class Room {
   desc: string;
   pass: string;
   freerate: boolean;
+  forcestart: boolean;
   playing: boolean;
   chart: Chart | null;
   free: boolean;
@@ -53,6 +54,7 @@ export class Room {
     this.desc = _desc;
     this.pass = _pass;
     this.players = [];
+    this.forcestart = false;
     this.owner = _owner;
     this.ops = [];
     this.free = false; // Free decides if only the owner can select charts
@@ -67,6 +69,59 @@ export class Room {
     this.timerLimit = 0;
   }
 
+  enableForce(player: Player) {
+    if (!player.room) {
+      // TODO
+      return;
+    }
+
+    if (
+      player.room.owner.user === player.user ||
+      player.room.ops.some(operatorInList => operatorInList === player.user)
+    ) {
+      if (this.forcestart === true) {
+        this.forcestart = false;
+        this.sendChat(`${systemPrepend} force start disabled.`);
+      } else {
+        this.forcestart = true;
+        this.sendChat(`${systemPrepend} force start enabled for this song.`);
+      }
+    } else {
+      unauthorizedChat(player, true);
+    }
+  }
+
+  checkPlayersReady(playerWhoSelected : Player): Array<Player> {
+    const nonReadyPlayers = this.players.filter(
+      (player: Player) => player.readystate !== true && player.user !== playerWhoSelected.user
+    );
+    return nonReadyPlayers;
+  }
+  
+  allReady(playerWhoSelected : Player) {
+    if (this.forcestart) {
+      return true;
+    } else {
+      const nonReadyPlayers: Array<Player> = this.checkPlayersReady(playerWhoSelected);
+
+      if (nonReadyPlayers.length === 1) {
+        this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
+        return false;
+      } else if (nonReadyPlayers.length === 2) {
+        this.sendChat(
+          `${systemPrepend} ${nonReadyPlayers[0].user} and ${
+            nonReadyPlayers[1].user
+          } are not ready.`
+        );
+      } else if (nonReadyPlayers.length > 1) {
+        this.sendChat(
+          `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
+        );
+        return false;
+      }
+    }
+    return true;
+  }
   serializeChart(chart: Chart | null = this.chart) {
     if (!chart) return {};
 
@@ -85,7 +140,15 @@ export class Room {
   }
 
   startChart(player: Player, message: ChartMessage) {
+
     if (this.countdown === true) {
+      if (!this.allReady(player)) {
+        return;
+      }
+      this.players.forEach((p: Player) => {
+        p.readystate = false;
+      }); // Set everyone back to not ready.
+      this.forcestart = false; // Set force back to false
       Promise.resolve(this.startTimer(this.timerLimit)).then(() => {
         const chart: Chart = new Chart(message, player);
 
@@ -125,6 +188,13 @@ export class Room {
         this.selectChart(player, message);
         return;
       }
+      if (!this.allReady(player)) {
+        return;
+      }
+      this.players.forEach((p: Player) => {
+        p.readystate = false;
+      }); // Set everyone back to not ready.
+      this.forcestart = false; // Set force back to false
 
       this.chart = chart;
       this.state = INGAME;
@@ -142,9 +212,9 @@ export class Room {
         scores: this.players
           .filter(p => p.state === PLAYING)
           .map(p => {
-            p.gameplayState.user = p.user;
-            return p.gameplayState;
-          })
+          p.gameplayState.user = p.user;
+          return p.gameplayState;
+        })
       })
     );
   }
@@ -181,6 +251,8 @@ export class Room {
     player.state = READY;
 
     if (this.chart) player.send(makeMessage('selectchart', { chart: this.serializeChart() }));
+    
+    this.refreshUserList()
   }
 
   serialize(): SerializedRoom {

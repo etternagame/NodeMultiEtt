@@ -236,8 +236,16 @@ export class ETTServer {
       shrug: (player: Player) => {
         Room.playerShrugs(player);
       },
+      ready: (player: Player) => {
+        player.toggleReady();
+      },
       countdown: (player: Player, command: string, params: string[]) => {
         Room.enableCountdown(player, command, params);
+      },
+      force: (player: Player) => {
+        if (player.room !== null) {
+          player.room.enableForce(player);
+        }
       },
       help: (player: Player) => {
         Room.help(player);
@@ -557,7 +565,7 @@ export class ETTServer {
     }
     if (!player.room || !player.room.canSelect(player)) {
       player.sendChat(
-        PRIVATE_MESSAGE,
+        ROOM_MESSAGE,
         `${systemPrepend}You don't have the rights to start a chart!`,
         player.room.name
       );
@@ -577,6 +585,7 @@ export class ETTServer {
 
   static onGameplayUpdate(player: Player, message: GenericMessage) {
     player.gameplayState.wife = message.wife;
+    player.gameplayState.jdgstr = message.jdgstr;
     if (player.room) player.room.onGameplayUpdate();
   }
 
@@ -761,11 +770,13 @@ export class ETTServer {
       player.room = this.addRoom(message, player);
       player.send(makeMessage('createroom', { created: true }));
       player.send(makeMessage('newroom', { room: player.room.serialize() }));
+      player.state = READY;
       player.sendChat(
         ROOM_MESSAGE,
         `${systemPrepend} Created room "${message.name}"`,
         message.name
       );
+      player.readystate = false;
     } else {
       player.send(makeMessage('createroom', { created: false }));
       player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Room name already in use`);
@@ -775,6 +786,7 @@ export class ETTServer {
   enterRoom(player: Player, room: Room) {
     room.enter(player);
     this.sendAll(makeMessage('updateroom', { room: room.serialize() }));
+    room.refreshUserList()
   }
 
   onEnterRoom(player: Player, message: LoginMessage) {
@@ -793,6 +805,7 @@ export class ETTServer {
         player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Incorrect password`);
       }
     else {
+      player.readystate = false;
       player.room = this.addRoom(message, player);
       player.send(makeMessage('enterroom', { entered: true }));
     }

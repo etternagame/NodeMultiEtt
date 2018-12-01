@@ -4,7 +4,7 @@ import { Room, SerializedRoom } from './room';
 
 import { makeMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
 
-import { color, removeMultiColor } from './utils';
+import { color, removeMultiColor, systemPrepend } from './utils';
 
 export const READY = 0;
 export const PLAYING = 1;
@@ -17,9 +17,11 @@ export class Player {
   pass: string;
   ws: EWebSocket;
   state: number;
+  readystate: boolean;
   gameplayState: {
     wife: number;
     user: string;
+    jdgstr: string;
   };
   room: Room | null;
   constructor(_user: string, _pass: string, _ws: EWebSocket) {
@@ -27,8 +29,9 @@ export class Player {
     this.pass = _pass;
     this.ws = _ws;
     this.state = READY;
+    this.readystate = false;
     this.room = null;
-    this.gameplayState = { wife: 0, user: _user };
+    this.gameplayState = { wife: 0, user: _user, jdgstr: "" };
   }
 
   sendPM(msg: string) {
@@ -78,6 +81,20 @@ export class Player {
 
   serialize() {
     return this.user;
+  }
+
+  toggleReady() {
+    if (this.readystate === true) {
+      this.readystate = false;
+      if (this.room !== null) {
+        this.room.sendChat(`${systemPrepend} ${this.user} is not ready.`);
+      }
+    } else {
+      this.readystate = true;
+      if (this.room !== null) {
+        this.room.sendChat(`${systemPrepend} ${this.user} is ready.`);
+      }
+    }
   }
 }
 
