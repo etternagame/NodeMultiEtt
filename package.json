@@ -45,6 +45,7 @@
   },
   "scripts": {
     "start": "npm run-script build && node start.js",
+    "test": "echo test",
     "lint": "eslint --fix **/*.js",
     "format": "prettier --write **/*.{js,json,md}",
     "precommit": "lint-staged",
