@@ -4,5 +4,7 @@ files:
   - source: ./
     destination: /home/ubuntu/NodeEttMulti
 hooks:
-  AfterInstall:
+  ApplicationStop:
+    - location: scripts/stop_server.sh
+  ApplicationStart:
     - location: scripts/start_server.sh
