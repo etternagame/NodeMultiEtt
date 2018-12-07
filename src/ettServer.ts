@@ -108,8 +108,12 @@ export class ETTServer {
   discordClient: any;
   useDiscord: boolean;
   wss: EWebSocketServer;
-  globalCommands: { [key: string]: (player: Player, command: string, params: string[]) => void };
-  roomCommands: { [key: string]: (player: Player, command: string, params: string[]) => void };
+  globalCommands: {
+    [key: string]: (player: Player, command: string, params: string[], msg: ChatMessage) => void;
+  };
+  roomCommands: {
+    [key: string]: (player: Player, command: string, params: string[], msg: ChatMessage) => void;
+  };
   currentRooms: Room[];
   serverName: string;
   accountList: { user: string; pass: string }[];
@@ -224,6 +228,9 @@ export class ETTServer {
       pm: (player: Player, command: string, params: string[]) => {
         this.pm(player, params[0], params.slice(1).join(' '));
       },
+      shrug: (player: Player, command: string, params: string[], msg: ChatMessage) => {
+        this.onChat(player, { msg: '¯\\_(ツ)_/¯', tab: msg.tab, msgtype: msg.msgtype });
+      },
       request: (player: Player, command: string, params: string[]) => {
         // Request chart (What else you gun request?)
         this.requestChart(player, params);
@@ -233,9 +240,6 @@ export class ETTServer {
 
   static makeRoomCommands() {
     return {
-      shrug: (player: Player) => {
-        Room.playerShrugs(player);
-      },
       ready: (player: Player) => {
         player.toggleReady();
       },
@@ -785,7 +789,7 @@ export class ETTServer {
   enterRoom(player: Player, room: Room) {
     room.enter(player);
     this.sendAll(makeMessage('updateroom', { room: room.serialize() }));
-    room.refreshUserList()
+    room.refreshUserList();
   }
 
   onEnterRoom(player: Player, message: LoginMessage) {
@@ -816,11 +820,11 @@ export class ETTServer {
     }
   }
 
-  onCommand(player: Player, message: GenericMessage, commandName: string, params: string[]) {
+  onCommand(player: Player, message: ChatMessage, commandName: string, params: string[]) {
     if (player.room) {
       const command = this.roomCommands[commandName.toLocaleLowerCase()];
       if (command) {
-        command(player, commandName, params);
+        command(player, commandName, params, message);
         return true;
       }
     }
@@ -828,7 +832,7 @@ export class ETTServer {
     const command = this.globalCommands[commandName];
 
     if (command) {
-      command(player, commandName, params);
+      command(player, commandName, params, message);
       return true;
     }
     return false;

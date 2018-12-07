@@ -91,14 +91,14 @@ export class Room {
     }
   }
 
-  checkPlayersReady(playerWhoSelected : Player): Array<Player> {
+  checkPlayersReady(playerWhoSelected: Player): Array<Player> {
     const nonReadyPlayers = this.players.filter(
       (player: Player) => player.readystate !== true && player.user !== playerWhoSelected.user
     );
     return nonReadyPlayers;
   }
-  
-  allReady(playerWhoSelected : Player) {
+
+  allReady(playerWhoSelected: Player) {
     if (this.forcestart) {
       return true;
     } else {
@@ -140,7 +140,6 @@ export class Room {
   }
 
   startChart(player: Player, message: ChartMessage) {
-
     if (this.countdown === true) {
       if (!this.allReady(player)) {
         return;
@@ -212,9 +211,9 @@ export class Room {
         scores: this.players
           .filter(p => p.state === PLAYING)
           .map(p => {
-          p.gameplayState.user = p.user;
-          return p.gameplayState;
-        })
+            p.gameplayState.user = p.user;
+            return p.gameplayState;
+          })
       })
     );
   }
@@ -251,8 +250,8 @@ export class Room {
     player.state = READY;
 
     if (this.chart) player.send(makeMessage('selectchart', { chart: this.serializeChart() }));
-    
-    this.refreshUserList()
+
+    this.refreshUserList();
   }
 
   serialize(): SerializedRoom {
@@ -453,14 +452,6 @@ export class Room {
     } else {
       unauthorizedChat(player);
     }
-  }
-
-  static playerShrugs(player: Player) {
-    if (!player.room) {
-      logger.error(`Trying to send shrug for roomless player ${player.user}`);
-      return;
-    }
-    player.room.sendChat(`${colorize(player.user, playerColor)}: ¯\\_(ツ)_/¯`);
   }
 
   startTimer(limit: number) {
