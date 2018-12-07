@@ -393,6 +393,11 @@ export class ETTServer {
     });
   }
 
+  findUser(username: string) {
+    username = username.toLowerCase();
+    return this.playerList.find(x => x.user.toLowerCase() === username);
+  }
+
   loadAccounts() {
     mongodbD.MongoClient.connect(
       this.mongoDBURL,
@@ -604,11 +609,20 @@ export class ETTServer {
       return;
     }
 
-    if (message.user.length < 4 || message.pass.length < 4) {
+    const maxLength = 16;
+    const minLength = 2;
+    const passLength = message.pass.length;
+    const userLength = message.user.length;
+    if (
+      userLength <= minLength ||
+      userLength <= maxLength ||
+      passLength <= minLength ||
+      passLength >= maxLength
+    ) {
       player.send(
         makeMessage('login', {
           logged: false,
-          msg: 'Username or password must have more than 3 characters'
+          msg: `Username and password must have more than ${minLength} characters and less than ${maxLength}`
         })
       );
       return;
@@ -618,7 +632,7 @@ export class ETTServer {
       this.removePlayer(player);
     }
 
-    if (this.playerList.find(x => x.user === message.user)) {
+    if (this.findUser(message.user)) {
       player.send(
         makeMessage('login', {
           logged: false,
@@ -661,7 +675,7 @@ export class ETTServer {
         }
       );
     } else {
-      const foundUser = this.accountList.find(x => x.user === message.user);
+      const foundUser = this.findUser(message.user);
 
       if (foundUser) {
         bcrypt.compare(message.pass, foundUser.pass).then((res: boolean) => {
@@ -851,6 +865,10 @@ export class ETTServer {
       return;
     }
 
+    // We strip newlines so they're not abused
+    // For some reason stepmania parses '::' as newlines
+    message.msg = message.msg.replace('\n', '').replace('::', '');
+
     if (message.msg.startsWith('/')) {
       let params = message.msg.split(' ');
       const command = params[0].substring(1);
@@ -934,7 +952,7 @@ export class ETTServer {
     const rate = params[2] || 1000;
     const requester = params[3] || player.user;
 
-    const playerToSendTo = this.playerList.find(x => x.user === recieverName);
+    const playerToSendTo = this.findUser(recieverName);
     if (!playerToSendTo) {
       this.userNotFoundOnlineHandler(player, recieverName);
     } else {
@@ -944,7 +962,7 @@ export class ETTServer {
 
   // Handles pm commands
   pm(player: Player, receptorName: string, msg: string) {
-    const playerToSendTo = this.playerList.find(x => x.user === receptorName);
+    const playerToSendTo = this.findUser(receptorName);
     if (!playerToSendTo) {
       player.sendPM(`${systemPrepend}Could not find user ${receptorName}`);
     } else {
