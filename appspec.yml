@@ -3,3 +3,6 @@ os: linux
 files:
   - source: ./
     destination: /home/ubuntu/NodeEttMulti
+hooks:
+  AfterInstall:
+    - location: scripts/start_server.sh
