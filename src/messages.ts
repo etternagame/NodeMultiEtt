@@ -35,7 +35,7 @@ export interface RoomMessage {
 }
 
 export interface LoginMessage {
-  name: string;
+  user: string;
   pass: string;
   // Maybe
   desc: string;

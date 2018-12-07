@@ -82,6 +82,7 @@ export interface ETTHandlers {
 
 export interface ETTParams {
   handlers: ETTHandlers | any;
+  allowAccountCreation: boolean | null;
   port: number | null;
   logPackets: boolean | null;
   mongoDBURL: string | null;
@@ -124,6 +125,7 @@ export class ETTServer {
   globalPermissions: { [key: string]: [string] };
   messageHandlers: { [key: string]: ETTMessage };
   dbConnectionFailed: boolean = false;
+  allowAccountCreation: boolean = false;
   db: mongodbD.Db | null = null;
   mongoDBName: string;
   connectionFailed: boolean = false;
@@ -138,6 +140,7 @@ export class ETTServer {
     this.mongoDBURL = params.mongoDBURL || '';
     this.mongoDBName = params.mongoDBName || 'ettmulti';
     this.serverName = params.serverName || 'nodeMultiEtt';
+    this.allowAccountCreation = params.allowAccountCreation || false;
     this.pingInterval = params.pingInterval || 15000;
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
     this.globalCommands = this.makeGlobalCommands();
@@ -229,7 +232,11 @@ export class ETTServer {
         this.pm(player, params[0], params.slice(1).join(' '));
       },
       shrug: (player: Player, command: string, params: string[], msg: ChatMessage) => {
-        this.onChat(player, { msg: '¯\\_(ツ)_/¯', tab: msg.tab, msgtype: msg.msgtype });
+        this.onChat(player, {
+          msg: '¯\\_(ツ)_/¯',
+          tab: msg.tab,
+          msgtype: msg.msgtype
+        });
       },
       request: (player: Player, command: string, params: string[]) => {
         // Request chart (What else you gun request?)
@@ -598,7 +605,7 @@ export class ETTServer {
     if (player.room) player.room.onGameplayUpdate();
   }
 
-  onLogin(player: Player, message: GenericMessage) {
+  onLogin(player: Player, message: LoginMessage) {
     if (!message.user || !message.pass) {
       player.send(
         makeMessage('login', {
@@ -658,36 +665,7 @@ export class ETTServer {
     }
 
     if (!this.mongoDBURL) {
-      const serv = this;
-
-      request.post(
-        {
-          url: 'https://api.etternaonline.com/v1/login',
-          form: { username: message.user, password: message.pass }
-        },
-        (error: any, response: { statusCode: number }, body: string) => {
-          if (response && response.statusCode === 200) {
-            if (JSON.parse(body).success === 'Valid') {
-              player.user = message.user;
-              player.pass = message.pass;
-
-              player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(serv.serverName)}`);
-              player.send(makeMessage('login', { logged: true, msg: '' }));
-              this.sendLobbyList(player);
-              this.addPlayerInLobbyLists(player);
-
-              return;
-            }
-          }
-
-          player.send(
-            makeMessage('login', {
-              logged: false,
-              msg: 'Wrong username or password'
-            })
-          );
-        }
-      );
+      this.EOLogin(player, message);
     } else {
       const foundUser = this.findUser(message.user);
 
@@ -710,18 +688,53 @@ export class ETTServer {
           }
         });
       } else {
-        // New account
-        player.user = message.user;
-        bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
-          player.pass = hash;
-          this.createAccount(player);
-          player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
-          player.send(makeMessage('login', { logged: true, msg: '' }));
-          this.sendLobbyList(player);
-          this.addPlayerInLobbyLists(player);
-        });
+        if (this.allowAccountCreation) {
+          // New account
+          player.user = message.user;
+          bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
+            player.pass = hash;
+            this.createAccount(player);
+            player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+            player.send(makeMessage('login', { logged: true, msg: '' }));
+            this.sendLobbyList(player);
+            this.addPlayerInLobbyLists(player);
+          });
+        } else {
+          this.EOLogin(player, message);
+        }
       }
     }
+  }
+
+  EOLogin(player: Player, { user, pass }: LoginMessage) {
+    request.post(
+      {
+        url: 'https://api.etternaonline.com/v1/login',
+        form: { username: user, password: pass }
+      },
+      (error: any, response: { statusCode: number }, body: string) => {
+        if (response && response.statusCode === 200) {
+          if (JSON.parse(body).success === 'Valid') {
+            player.user = user;
+            player.pass = pass;
+
+            player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+            player.send(makeMessage('login', { logged: true, msg: '' }));
+            this.sendLobbyList(player);
+            this.addPlayerInLobbyLists(player);
+
+            return;
+          }
+        }
+
+        player.send(
+          makeMessage('login', {
+            logged: false,
+            msg: 'Wrong username or password'
+          })
+        );
+      }
+    );
   }
 
   onLeaveRoom(player: Player) {
