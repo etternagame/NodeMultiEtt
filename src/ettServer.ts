@@ -627,6 +627,20 @@ export class ETTServer {
       );
       return;
     }
+    if (
+      message.user.includes(' ') ||
+      message.user.includes('::') ||
+      message.user.includes('\n') ||
+      message.user.includes('\t')
+    ) {
+      player.send(
+        makeMessage('login', {
+          logged: false,
+          msg: `Usernames cannot contain whitespace`
+        })
+      );
+      return;
+    }
 
     if (player.user) {
       this.removePlayer(player);
