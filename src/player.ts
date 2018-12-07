@@ -14,16 +14,23 @@ export const NOTREADY = 4;
 
 export class Player {
   user: string;
+
   pass: string;
+
   ws: EWebSocket;
+
   state: number;
+
   readystate: boolean;
+
   gameplayState: {
     wife: number;
     user: string;
     jdgstr: string;
   };
+
   room: Room | null;
+
   constructor(_user: string, _pass: string, _ws: EWebSocket) {
     this.user = _user;
     this.pass = _pass;
@@ -31,7 +38,7 @@ export class Player {
     this.state = READY;
     this.readystate = false;
     this.room = null;
-    this.gameplayState = { wife: 0, user: _user, jdgstr: "" };
+    this.gameplayState = { wife: 0, user: _user, jdgstr: '' };
   }
 
   sendPM(msg: string) {

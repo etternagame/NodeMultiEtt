@@ -33,22 +33,39 @@ export const INGAME = 1;
 
 export class Room {
   name: string;
+
   desc: string;
+
   pass: string;
+
   freerate: boolean;
+
   forcestart: boolean;
+
   playing: boolean;
+
   chart: Chart | null;
+
   free: boolean;
+
   state: number;
+
   selectionMode: number;
+
   owner: Player;
+
   ops: string[];
+
   players: Player[];
+
   timerInterval: any;
+
   countdown: boolean;
+
   countdownStarted: boolean;
+
   timerLimit: number;
+
   constructor(_name: string, _desc: string, _pass: string, _owner: Player) {
     this.name = _name;
     this.desc = _desc;
@@ -101,27 +118,27 @@ export class Room {
   allReady(playerWhoSelected: Player) {
     if (this.forcestart) {
       return true;
-    } else {
-      const nonReadyPlayers: Array<Player> = this.checkPlayersReady(playerWhoSelected);
-
-      if (nonReadyPlayers.length === 1) {
-        this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
-        return false;
-      } else if (nonReadyPlayers.length === 2) {
-        this.sendChat(
-          `${systemPrepend} ${nonReadyPlayers[0].user} and ${
-            nonReadyPlayers[1].user
-          } are not ready.`
-        );
-      } else if (nonReadyPlayers.length > 1) {
-        this.sendChat(
-          `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
-        );
-        return false;
-      }
     }
+    const nonReadyPlayers: Array<Player> = this.checkPlayersReady(playerWhoSelected);
+
+    if (nonReadyPlayers.length === 1) {
+      this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
+      return false;
+    }
+    if (nonReadyPlayers.length === 2) {
+      this.sendChat(
+        `${systemPrepend} ${nonReadyPlayers[0].user} and ${nonReadyPlayers[1].user} are not ready.`
+      );
+    } else if (nonReadyPlayers.length > 1) {
+      this.sendChat(
+        `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
+      );
+      return false;
+    }
+
     return true;
   }
+
   serializeChart(chart: Chart | null = this.chart) {
     if (!chart) return {};
 
@@ -231,6 +248,7 @@ export class Room {
       )}`
     );
   }
+
   refreshUserList() {
     this.send(
       makeMessage('userlist', {

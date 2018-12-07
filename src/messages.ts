@@ -34,9 +34,13 @@ export interface RoomMessage {
   pass: string;
 }
 
+export interface EnterRoomMessage {
+  name: string;
+  pass: string | null;
+  desc: string | null;
+}
+
 export interface LoginMessage {
   user: string;
   pass: string;
-  // Maybe
-  desc: string;
 }

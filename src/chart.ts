@@ -4,14 +4,23 @@ import { ChartMessage } from './messages';
 
 class Chart {
   title: string;
+
   subtitle: string;
+
   artist: string;
+
   filehash: string;
+
   pickedBy: string;
+
   meter: number;
+
   difficulty: number;
+
   rate: number;
+
   chartkey: string;
+
   constructor(message: ChartMessage, player: Player) {
     this.title = message.title;
     this.subtitle = message.subtitle;

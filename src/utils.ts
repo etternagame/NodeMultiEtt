@@ -62,7 +62,7 @@ export const stringToColour = function(str: string) {
   for (let i = 0; i < 3; i++) {
     // eslint-disable-next-line no-bitwise
     const value = (hash >> (i * 8)) & 0xFF;
-    colour += ('00' + value.toString(16)).substr(-2);
+    colour += `00${value.toString(16)}`.substr(-2);
   }
 
   return colour;

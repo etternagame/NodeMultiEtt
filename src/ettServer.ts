@@ -21,7 +21,8 @@ import {
   RoomMessage,
   ChartMessage,
   LoginMessage,
-  ChatMessage
+  ChatMessage,
+  EnterRoomMessage
 } from './messages';
 
 // Bcrypt default salt rounds
@@ -102,35 +103,62 @@ export interface ETTParams {
 
 export class ETTServer {
   playerList: Player[];
+
   discordChannel: any;
+
   discordChannelId: string;
+
   discordGuildId: string;
+
   discordBotToken: string;
+
   discordClient: any;
+
   useDiscord: boolean;
+
   wss: EWebSocketServer;
+
   globalCommands: {
     [key: string]: (player: Player, command: string, params: string[], msg: ChatMessage) => void;
   };
+
   roomCommands: {
     [key: string]: (player: Player, command: string, params: string[], msg: ChatMessage) => void;
   };
+
   currentRooms: Room[];
+
   serverName: string;
+
   accountList: { user: string; pass: string }[];
+
   mongoDBURL: string;
+
   pingInterval: number;
+
   logPackets: boolean;
+
   pingCountToDisconnect: number;
+
   globalPermissions: { [key: string]: [string] };
+
   messageHandlers: { [key: string]: ETTMessage };
+
   dbConnectionFailed: boolean = false;
+
   allowAccountCreation: boolean = false;
+
   db: mongodbD.Db | null = null;
+
   mongoDBName: string;
+
   connectionFailed: boolean = false;
+
   server: object;
-  port: number; // { [key: string]: any }
+
+  port: number;
+
+  // { [key: string]: any }
   constructor(params: ETTParams) {
     // Options
     if (!params.discord) params.discord = {};
@@ -226,6 +254,7 @@ export class ETTServer {
       });
     }
   }
+
   makeGlobalCommands() {
     return {
       pm: (player: Player, command: string, params: string[]) => {
@@ -401,8 +430,8 @@ export class ETTServer {
   }
 
   findUser(username: string) {
-    username = username.toLowerCase();
-    return this.playerList.find(x => x.user.toLowerCase() === username);
+    const lowerUsername = username.toLowerCase();
+    return this.playerList.find(x => x.user.toLowerCase() === lowerUsername);
   }
 
   loadAccounts() {
@@ -687,21 +716,19 @@ export class ETTServer {
             );
           }
         });
+      } else if (this.allowAccountCreation) {
+        // New account
+        player.user = message.user;
+        bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
+          player.pass = hash;
+          this.createAccount(player);
+          player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+          player.send(makeMessage('login', { logged: true, msg: '' }));
+          this.sendLobbyList(player);
+          this.addPlayerInLobbyLists(player);
+        });
       } else {
-        if (this.allowAccountCreation) {
-          // New account
-          player.user = message.user;
-          bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
-            player.pass = hash;
-            this.createAccount(player);
-            player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
-            player.send(makeMessage('login', { logged: true, msg: '' }));
-            this.sendLobbyList(player);
-            this.addPlayerInLobbyLists(player);
-          });
-        } else {
-          this.EOLogin(player, message);
-        }
+        this.EOLogin(player, message);
       }
     }
   }
@@ -760,6 +787,7 @@ export class ETTServer {
     player.state = READY;
     this.updateRoomState(player.room);
   }
+
   onEnterEval(player: Player) {
     player.state = EVAL;
     this.updateRoomState(player.room);
@@ -791,6 +819,7 @@ export class ETTServer {
 
     player.room.send(makeMessage('score', { name: player.user, score: message }));
   }
+
   static onMissingChart(player: Player) {
     if (!player.user || !player.room) return;
     if (player.room) {
@@ -833,7 +862,7 @@ export class ETTServer {
     room.refreshUserList();
   }
 
-  onEnterRoom(player: Player, message: LoginMessage) {
+  onEnterRoom(player: Player, message: EnterRoomMessage) {
     if (!player.user) {
       return;
     }
@@ -850,7 +879,8 @@ export class ETTServer {
       }
     else {
       player.readystate = false;
-      player.room = this.addRoom(message, player);
+      if (!message.desc) message.desc = '';
+      player.room = this.addRoom(<RoomMessage>message, player);
       player.send(makeMessage('enterroom', { entered: true }));
     }
   }
@@ -878,10 +908,12 @@ export class ETTServer {
     }
     return false;
   }
+
   static getUserColor(player: Player, room: Room) {
     if (player.user === room.owner.user) {
       return ownerColor;
-    } else if (room.ops.find((x: string) => x === player.user)) {
+    }
+    if (room.ops.find((x: string) => x === player.user)) {
       return opColor;
     }
     return playerColor;
