@@ -1,24 +1,16 @@
-import { createLogger, format, transports } from 'winston';
-
 import Chart from './chart';
-import { NOTREADY, Player, PLAYING, READY } from './player';
+import { Player, PLAYING, READY } from './player';
 
-import { ChartMessage, GenericMessage, makeMessage, PRIVATE_MESSAGE } from './messages';
+import { ChartMessage, GenericMessage, makeMessage } from './messages';
 
 import {
   colorize,
-  playerColor,
   selectionModeDescriptions,
   selectionModes,
   stringToColour,
   systemPrepend,
   unauthorizedChat
 } from './utils';
-
-const logger = createLogger({
-  format: format.simple(),
-  transports: [new transports.Console()]
-});
 
 export interface SerializedRoom {
   name: string;
@@ -108,35 +100,39 @@ export class Room {
     }
   }
 
-  checkPlayersReady(playerWhoSelected: Player): Array<Player> {
+  playersWhoNeedToReady(playerWhoSelected: Player): Array<Player> {
     const nonReadyPlayers = this.players.filter(
       (player: Player) => player.readystate !== true && player.user !== playerWhoSelected.user
     );
     return nonReadyPlayers;
   }
 
+  static playerListToString(players: Array<Player>) {
+    if (players.length === 1) {
+      return players[0].user;
+    }
+    if (players.length === 2) {
+      return `${players[0].user} and ${players[1].user}`;
+    }
+    if (players.length > 1) {
+      const usernames = players.map(p => p.user);
+      return [usernames.slice(0, -1).join(', '), usernames.slice(-1)[0]].join(
+        usernames.length < 2 ? '' : ' and '
+      );
+    }
+
+    return '';
+  }
+
   allReady(playerWhoSelected: Player) {
-    if (this.forcestart) {
-      return true;
+    const nonReadyPlayers: Array<Player> = this.playersWhoNeedToReady(playerWhoSelected);
+    if (this.forcestart || nonReadyPlayers.length === 0) {
+      return null;
     }
-    const nonReadyPlayers: Array<Player> = this.checkPlayersReady(playerWhoSelected);
-
     if (nonReadyPlayers.length === 1) {
-      this.sendChat(`${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`);
-      return false;
+      return `${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`;
     }
-    if (nonReadyPlayers.length === 2) {
-      this.sendChat(
-        `${systemPrepend} ${nonReadyPlayers[0].user} and ${nonReadyPlayers[1].user} are not ready.`
-      );
-    } else if (nonReadyPlayers.length > 1) {
-      this.sendChat(
-        `${systemPrepend} ${nonReadyPlayers.map(p => p.user).join(', ')} are not ready.`
-      );
-      return false;
-    }
-
-    return true;
+    return `${systemPrepend} ${Room.playerListToString(nonReadyPlayers)} are not ready.`;
   }
 
   serializeChart(chart: Chart | null = this.chart) {
@@ -158,7 +154,9 @@ export class Room {
 
   startChart(player: Player, message: ChartMessage) {
     if (this.countdown === true) {
-      if (!this.allReady(player)) {
+      const err = this.allReady(player);
+      if (err) {
+        this.sendChat(err);
         return;
       }
       this.players.forEach((p: Player) => {
@@ -204,7 +202,9 @@ export class Room {
         this.selectChart(player, message);
         return;
       }
-      if (!this.allReady(player)) {
+      const err = this.allReady(player);
+      if (err) {
+        this.sendChat(err);
         return;
       }
       this.players.forEach((p: Player) => {
@@ -252,7 +252,7 @@ export class Room {
   refreshUserList() {
     this.send(
       makeMessage('userlist', {
-        players: this.players.map(x => ({ name: x.user, status: x.state + 1 }))
+        players: this.players.map(x => ({ name: x.user, status: x.state + 1, ready: x.readystate }))
       })
     );
   }
@@ -338,22 +338,21 @@ export class Room {
     );
   }
 
-  canStart() {
+  canStart(playerWhoSelected: Player) {
     let err: string | null = null;
-    const nonReady: Player[] = [];
+    const busyPlayers = this.players.filter(p => p.state !== READY);
 
-    this.players.forEach(pl => {
-      if (pl.state !== READY) {
-        nonReady.push(pl);
-      }
-    });
-
-    if (nonReady.length > 0) {
+    if (busyPlayers.length > 0) {
       err = 'Players ';
-      nonReady.forEach(pl => {
+      busyPlayers.forEach(pl => {
         err = `${err} ${pl.user}, `;
       });
       err = `${err.substring(0, err.length - 2)} are busy`;
+    }
+
+    err = this.allReady(playerWhoSelected);
+    if (err) {
+      err = `${err} ${err.length > 1 ? 'are' : 'is'} busy`;
     }
 
     return err;
@@ -363,52 +362,35 @@ export class Room {
     this.players = this.players.filter(x => x.user !== player.user);
   }
 
-  static freeMode(player: Player) {
-    if (player.room) {
-      if (
-        player.room.owner.user === player.user ||
-        player.room.ops.some(operatorInList => operatorInList === player.user)
-      ) {
-        player.room.free = !player.room.free;
-        player.room.sendChat(
-          `${systemPrepend}The room is now ${
-            player.room.free ? '' : 'not '
-          }in free song picking mode`
-        );
-      } else {
-        unauthorizedChat(player, true);
-      }
-    } else {
-      // TODO
-    }
-  }
-
-  static freeRate(player: Player) {
-    if (!player.room) {
-      // TODO
-      return;
-    }
+  toggleFreeMode(player: Player) {
     if (
-      player.room.owner.user === player.user ||
-      player.room.ops.some(operatorInList => operatorInList === player.user)
+      this.owner.user === player.user ||
+      this.ops.some(operatorInList => operatorInList === player.user)
     ) {
-      player.room.freerate = !player.room.freerate;
-
-      player.room.sendChat(
-        `${systemPrepend}The room is now ${player.room.freerate ? '' : 'not'} rate free mode`
+      this.free = !this.free;
+      this.sendChat(
+        `${systemPrepend}The room is now ${this.free ? '' : 'not '}in free song picking mode`
       );
     } else {
       unauthorizedChat(player, true);
     }
   }
 
-  static selectionMode(player: Player, command: string, params: string[]) {
-    if (!player.room) {
-      // TODO
-      return;
-    }
+  freeRate(player: Player) {
+    if (
+      this.owner.user === player.user ||
+      this.ops.some(operatorInList => operatorInList === player.user)
+    ) {
+      this.freerate = !this.freerate;
 
-    if (player.room.owner.user === player.user) {
+      this.sendChat(`${systemPrepend}The room is now ${this.freerate ? '' : 'not'} rate free mode`);
+    } else {
+      unauthorizedChat(player, true);
+    }
+  }
+
+  selectionModeCommand(player: Player, command: string, params: string[]) {
+    if (this.owner.user === player.user) {
       const selectionMode = params[0] ? selectionModes[+params[0]] : null;
 
       if (!selectionMode) {
@@ -416,13 +398,13 @@ export class Room {
           1,
           `${systemPrepend}Invalid selection mode. Valid ones are:\n
               ${JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
-          player.room.name
+          this.name
         );
       }
 
-      player.room.selectionMode = +params[0];
+      this.selectionMode = +params[0];
 
-      player.room.sendChat(
+      this.sendChat(
         `${systemPrepend}The room is now in "${
           selectionModeDescriptions[+params[0]]
         }" selection mode`
@@ -432,40 +414,29 @@ export class Room {
     }
   }
 
-  static roll(player: Player, command: string, params: string[]) {
-    if (!player.room) {
-      // TODO
-      return;
-    }
-
+  roll(player: Player, command: string, params: string[]) {
     if (!Number.isNaN(parseInt(params[0], 10))) {
       const rolledNumber = Math.floor(Math.random() * parseInt(params[0], 10));
 
-      player.room.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
+      this.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
     } else {
-      player.room.sendChat(
-        `${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 10)}`
-      );
+      this.sendChat(`${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 10)}`);
     }
   }
 
-  static op(player: Player, command: string, params: string[]) {
-    if (!player.room) {
-      // TODO
-      return;
-    }
-    if (player.room.owner.user === player.user) {
-      if (!player.room.players.find(x => x.user === params[0])) {
-        player.room.sendChat(`${systemPrepend}${params[0]} is not in the room!`);
+  op(player: Player, command: string, params: string[]) {
+    if (this.owner.user === player.user) {
+      if (!this.players.find(x => x.user === params[0])) {
+        this.sendChat(`${systemPrepend}${params[0]} is not in the room!`);
         return;
       }
 
-      if (!player.room.ops.find(x => x === params[0])) {
-        player.room.ops.push(params[0]);
-        player.room.sendChat(`${systemPrepend}${params[0]} is now a room operator`);
+      if (!this.ops.find(x => x === params[0])) {
+        this.ops.push(params[0]);
+        this.sendChat(`${systemPrepend}${params[0]} is now a room operator`);
       } else {
-        player.room.ops = player.room.ops.filter(x => x !== params[0]);
-        player.room.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
+        this.ops = this.ops.filter(x => x !== params[0]);
+        this.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
       }
     } else {
       unauthorizedChat(player);
@@ -496,55 +467,24 @@ export class Room {
     });
   }
 
-  static stopTimer(player: Player) {
-    if (!player.room) {
-      logger.error(`Trying to stop timer for roomless player ${player.user}`);
-      return;
-    }
-
-    player.room.countdownStarted = false;
-
-    player.room.sendChat(`${systemPrepend}Song start cancelled!`);
-    clearInterval(player.room.timerInterval);
+  stopTimer() {
+    this.countdownStarted = false;
+    this.sendChat(`${systemPrepend}Song start cancelled!`);
+    clearInterval(this.timerInterval);
   }
 
-  static help(player: Player) {
-    if (!player.room) {
-      logger.error(`Trying to get help for a roomless player ${player.user}`);
-      return;
-    }
-
-    const helpMessage = `
-      Commands:\n
-        /free - Enable free mode allows anyone to choose a chart (Privileged)\n
-        /freerate - Enable free rate allowing people to play any rate the want (Privileged)\n
-        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n 
-        /countdown - Enable a countdown before starting the chart (Privileged)\n
-        /stop - Stop the current countdown (Privileged)\n
-        /shrug - Our favorite little emoji\n
-        /roll - Roll a random number, you can specify a limit i.e. roll 1442\n
-        /help - This command right here!
-    `;
-
-    player.sendChat(PRIVATE_MESSAGE, helpMessage);
-  }
-
-  static enableCountdown(player: Player, command: string, params: string[]) {
-    if (!player.room) {
-      logger.error(`Trying to enable countdown for roomless player ${player.user}`);
-      return;
-    }
-    if (player.room.countdown === true) {
-      player.room.countdown = false;
-      player.room.sendChat(`${systemPrepend}Countdown disabled, songs will start instantly`);
+  enableCountdown(player: Player, command: string, params: string[]) {
+    if (this.countdown === true) {
+      this.countdown = false;
+      this.sendChat(`${systemPrepend}Countdown disabled, songs will start instantly`);
       return;
     }
 
     if (!params[0]) {
-      player.room.sendChat(`${systemPrepend}Please set a countdown timer between 2 and 15`);
+      this.sendChat(`${systemPrepend}Please set a countdown timer between 2 and 15`);
     } else {
-      player.room.countdown = !player.room.countdown;
-      player.room.timerLimit = parseInt(params[0], 10);
+      this.countdown = !this.countdown;
+      this.timerLimit = parseInt(params[0], 10);
     }
   }
 }

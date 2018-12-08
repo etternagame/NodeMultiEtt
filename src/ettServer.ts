@@ -123,7 +123,13 @@ export class ETTServer {
   };
 
   roomCommands: {
-    [key: string]: (player: Player, command: string, params: string[], msg: ChatMessage) => void;
+    [key: string]: (
+      player: Player,
+      room: Room,
+      command: string,
+      params: string[],
+      msg: ChatMessage
+    ) => void;
   };
 
   currentRooms: Room[];
@@ -267,8 +273,20 @@ export class ETTServer {
           msgtype: msg.msgtype
         });
       },
+      help: (player: Player) => {
+        const helpMessage = `Commands:\n
+        /free - Enable free mode allows anyone to choose a chart (Privileged)\n
+        /freerate - Enable free rate allowing people to play any rate the want (Privileged)\n
+        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n 
+        /countdown - Enable a countdown before starting the chart (Privileged)\n
+        /stop - Stop the current countdown (Privileged)\n
+        /shrug - Our favorite little emoji\n
+        /roll - Roll a random number, you can specify a limit i.e. roll 1442\n
+        /help - This command right here!`;
+
+        player.sendChat(PRIVATE_MESSAGE, helpMessage);
+      },
       request: (player: Player, command: string, params: string[]) => {
-        // Request chart (What else you gun request?)
         this.requestChart(player, params);
       }
     };
@@ -279,34 +297,29 @@ export class ETTServer {
       ready: (player: Player) => {
         player.toggleReady();
       },
-      countdown: (player: Player, command: string, params: string[]) => {
-        Room.enableCountdown(player, command, params);
+      countdown: (player: Player, room: Room, command: string, params: string[]) => {
+        room.enableCountdown(player, command, params);
       },
-      force: (player: Player) => {
-        if (player.room !== null) {
-          player.room.enableForce(player);
-        }
+      force: (player: Player, room: Room) => {
+        room.enableForce(player);
       },
-      help: (player: Player) => {
-        Room.help(player);
+      stop: (player: Player, room: Room) => {
+        room.stopTimer();
       },
-      stop: (player: Player) => {
-        Room.stopTimer(player);
+      free: (player: Player, room: Room) => {
+        room.toggleFreeMode(player);
       },
-      free: (player: Player) => {
-        Room.freeMode(player);
+      freerate: (player: Player, room: Room) => {
+        room.freeRate(player);
       },
-      freerate: (player: Player) => {
-        Room.freeRate(player);
+      selectionMode: (player: Player, room: Room, command: string, params: string[]) => {
+        room.selectionModeCommand(player, command, params);
       },
-      selectionMode: (player: Player, command: string, params: string[]) => {
-        Room.selectionMode(player, command, params);
+      roll: (player: Player, room: Room, command: string, params: string[]) => {
+        room.roll(player, command, params);
       },
-      roll: (player: Player, command: string, params: string[]) => {
-        Room.roll(player, command, params);
-      },
-      op: (player: Player, command: string, params: string[]) => {
-        Room.op(player, command, params);
+      op: (player: Player, room: Room, command: string, params: string[]) => {
+        room.op(player, command, params);
       }
     };
   }
@@ -608,7 +621,7 @@ export class ETTServer {
       player.sendPM(`${systemPrepend}You're not in a room`);
       return;
     }
-    if (!player.room || !player.room.canSelect(player)) {
+    if (!player.room.canSelect(player)) {
       player.sendChat(
         ROOM_MESSAGE,
         `${systemPrepend}You don't have the rights to start a chart!`,
@@ -618,13 +631,13 @@ export class ETTServer {
       return;
     }
 
-    const err = player.room.canStart();
+    const err = player.room.canStart(player);
 
     if (!err) {
       player.room.startChart(player, message);
       this.sendAll(makeMessage('updateroom', { room: player.room.serialize() }));
     } else {
-      player.room.sendChat(`${systemPrepend}Cant start (${err})`);
+      player.room.sendChat(`${systemPrepend}Can't start (${err})`);
     }
   }
 
@@ -895,7 +908,7 @@ export class ETTServer {
     if (player.room) {
       const command = this.roomCommands[commandName.toLocaleLowerCase()];
       if (command) {
-        command(player, commandName, params, message);
+        command(player, player.room, commandName, params, message);
         return true;
       }
     }
