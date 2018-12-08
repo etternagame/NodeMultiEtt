@@ -62,9 +62,10 @@ export class Room {
     this.name = _name;
     this.desc = _desc;
     this.pass = _pass;
-    this.players = [];
-    this.forcestart = false;
     this.owner = _owner;
+    this.players = [_owner];
+    _owner.room = this;
+    this.forcestart = false;
     this.ops = [];
     this.free = false; // Free decides if only the owner can select charts
     this.countdown = false; // No countdown before song start
@@ -76,18 +77,23 @@ export class Room {
     this.playing = false;
     this.timerInterval = 0;
     this.timerLimit = 0;
+    this.updateStatus();
+  }
+
+  isOperator(player: Player) {
+    return this.ops.some(operatorInList => operatorInList === player.user);
+  }
+
+  isOwner(player: Player) {
+    return this.owner.user === player.user;
+  }
+
+  isOperatorOrOwner(player: Player) {
+    return this.isOwner(player) || this.isOperator(player);
   }
 
   enableForce(player: Player) {
-    if (!player.room) {
-      // TODO
-      return;
-    }
-
-    if (
-      player.room.owner.user === player.user ||
-      player.room.ops.some(operatorInList => operatorInList === player.user)
-    ) {
+    if (this.isOperatorOrOwner(player)) {
       if (this.forcestart === true) {
         this.forcestart = false;
         this.sendChat(`${systemPrepend} force start disabled.`);
@@ -340,11 +346,7 @@ export class Room {
   }
 
   canSelect(player: Player) {
-    return (
-      this.free ||
-      player === this.owner ||
-      this.ops.some(operatorInList => operatorInList === player.user)
-    );
+    return this.free || this.isOperatorOrOwner(player);
   }
 
   canStart(playerWhoSelected: Player) {
@@ -372,10 +374,7 @@ export class Room {
   }
 
   toggleFreeMode(player: Player) {
-    if (
-      this.owner.user === player.user ||
-      this.ops.some(operatorInList => operatorInList === player.user)
-    ) {
+    if (this.isOperatorOrOwner(player)) {
       this.free = !this.free;
       this.sendChat(
         `${systemPrepend}The room is now ${this.free ? '' : 'not '}in free song picking mode`
@@ -386,10 +385,7 @@ export class Room {
   }
 
   freeRate(player: Player) {
-    if (
-      this.owner.user === player.user ||
-      this.ops.some(operatorInList => operatorInList === player.user)
-    ) {
+    if (this.isOperatorOrOwner(player)) {
       this.freerate = !this.freerate;
 
       this.sendChat(`${systemPrepend}The room is now ${this.freerate ? '' : 'not'} rate free mode`);

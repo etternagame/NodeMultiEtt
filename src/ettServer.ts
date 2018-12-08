@@ -158,7 +158,7 @@ export class ETTServer {
     this.pingInterval = params.pingInterval || 15000;
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
     this.globalCommands = this.makeGlobalCommands();
-    this.roomCommands = ETTServer.makeRoomCommands();
+    this.roomCommands = this.makeRoomCommands();
     this.globalPermissions = {};
 
     this.messageHandlers = {
@@ -263,8 +263,8 @@ export class ETTServer {
         /shrug - Our favorite little emoji\n
         /roll - Roll a random number, you can specify a limit i.e. roll 1442\n
         /help - This command right here!`;
-
-        player.sendChat(PRIVATE_MESSAGE, helpMessage);
+        // We send each line separetely because the client chatbox gets fucky with newlines in msgs
+        helpMessage.split('\n').forEach(l => player.sendChat(PRIVATE_MESSAGE, l));
       },
       request: (player: Player, command: string, params: string[]) => {
         this.requestChart(player, params);
@@ -272,13 +272,91 @@ export class ETTServer {
     };
   }
 
-  static makeRoomCommands() {
+  makeRoomCommands() {
     return {
       ready: (player: Player) => {
         player.toggleReady();
       },
       countdown: (player: Player, room: Room, command: string, params: string[]) => {
         room.enableCountdown(player, command, params);
+      },
+      desc: (player: Player, room: Room, command: string, [desc]: string[]) => {
+        if (room.isOwner(player)) {
+          room.desc = desc;
+          this.updateRoom(room);
+          room.sendChat('');
+          room.sendChat(`${systemPrepend}${player.user} changed the room description to ${desc}`);
+        } else {
+          player.sendChat(
+            ROOM_MESSAGE,
+            `${systemPrepend}${
+              player.user
+            }, you're not the room owner so you cannot change the description`,
+            room.name
+          );
+        }
+      },
+      title: (player: Player, room: Room, command: string, [title]: string[]) => {
+        if (room.isOwner(player)) {
+          room.name = title;
+          this.updateRoom(room);
+          room.sendChat('');
+          room.sendChat(`${systemPrepend}${player.user} renamed the room to ${title}`);
+        } else {
+          player.sendChat(
+            ROOM_MESSAGE,
+            `${systemPrepend}${
+              player.user
+            }, you're not the room owner so you cannot change the title`,
+            room.name
+          );
+        }
+      },
+      pass: (player: Player, room: Room, command: string, [pass]: string[]) => {
+        if (room.isOwner(player)) {
+          room.pass = pass;
+          this.updateRoom(room);
+          room.sendChat('');
+          room.sendChat(`${systemPrepend}${player.user} changed the room password`);
+        } else {
+          player.sendChat(
+            ROOM_MESSAGE,
+            `${systemPrepend}${
+              player.user
+            }, you're not the room owner so you cannot change the password`,
+            room.name
+          );
+        }
+      },
+      kick: (player: Player, room: Room, command: string, [user]: string[]) => {
+        const playerToKick = this.findUser(user);
+        if (playerToKick) {
+          const isOp = room.isOperator(player);
+          const isOwner = room.isOwner(player);
+          const playerToKickIsOp = room.isOwner(playerToKick);
+          if (isOwner || (isOp && !playerToKickIsOp)) {
+            this.leaveRoom(playerToKick);
+            room.sendChat(`${systemPrepend}${playerToKick.user} was kicked`);
+            playerToKick.sendChat(ROOM_MESSAGE, `${systemPrepend}You have been kicked`, room.name);
+            playerToKick.send(makeMessage('kicked'));
+          } else {
+            player.sendChat(
+              ROOM_MESSAGE,
+              `${systemPrepend}${player.user},  you have insufficient rights to kick ${
+                playerToKick.user
+              }`,
+              room.name
+            );
+          }
+        } else {
+          player.sendChat(
+            ROOM_MESSAGE,
+            `${systemPrepend}${
+              player.user
+            }, you're not the room owner so you cannot change the password`,
+            room.name
+          );
+        }
       },
       force: (player: Player, room: Room) => {
         room.enableForce(player);
@@ -306,14 +384,9 @@ export class ETTServer {
 
   addRoom(message: RoomMsg, creator: Player) {
     const room = new Room(message.name, message.desc, message.pass, creator);
-
     this.currentRooms.push(room);
-    room.players.push(creator);
-
-    creator.room = room;
 
     this.sendAll(makeMessage('newroom', { room: room.serialize() }));
-    this.updateRoomState(room);
 
     return room;
   }
@@ -387,20 +460,17 @@ export class ETTServer {
   leaveRoom(player: Player) {
     const room = player.leaveRoom();
 
-    if (room) {
-      if (room.players.length <= 0) {
-        // Delete room if empty
-        this.currentRooms = this.currentRooms.filter(x => x.name !== room.name);
-
-        // this.resendAllRooms(this.wss);
-        this.sendAll(makeMessage('deleteroom', { room: room.serialize() }));
-      } else {
-        // send notice to players in room that someone left
-        room.sendChat(`${systemPrepend}${player.user} left`);
-        this.updateRoomState(room);
-      }
-      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Left room ${room.name}`);
+    if (!room) return;
+    if (room.players.length <= 0) {
+      // Delete room if empty
+      this.currentRooms = this.currentRooms.filter(x => x.name !== room.name);
+      this.sendAll(makeMessage('deleteroom', { room: room.serialize() }));
+    } else {
+      // send notice to players in room that someone left
+      room.sendChat(`${systemPrepend}${player.user} left`);
+      this.updateRoom(room);
     }
+    player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Left room ${room.name}`);
   }
 
   resendAllRooms() {
@@ -795,12 +865,16 @@ export class ETTServer {
     this.updateRoomState(player.room);
   }
 
+  updateRoom(room: Room) {
+    this.sendAll(makeMessage('updateroom', { room: room.serialize() }));
+  }
+
   updateRoomState(room: Room | null) {
     if (!room) return;
     const oldState = room.state;
     room.updateStatus();
     if (oldState !== room.state) {
-      this.sendAll(makeMessage('updateroom', { room: room.serialize() }));
+      this.updateRoom(room);
     }
   }
 
@@ -907,7 +981,7 @@ export class ETTServer {
   }
 
   static getUserColor(player: Player, room: Room) {
-    if (player.user === room.owner.user) {
+    if (room.isOwner(player)) {
       return ownerColor;
     }
     if (room.ops.find((x: string) => x === player.user)) {
