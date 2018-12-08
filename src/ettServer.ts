@@ -17,12 +17,16 @@ import {
   LOBBY_MESSAGE,
   PRIVATE_MESSAGE,
   makeMessage,
-  GenericMessage,
-  RoomMessage,
-  ChartMessage,
-  LoginMessage,
-  ChatMessage,
-  EnterRoomMessage
+  RoomMsg,
+  ETTPMsgHandlers,
+  ScoreMsg,
+  GameplayUpdateMsg,
+  ChartMsg,
+  LoginMsg,
+  ChatMsg,
+  ETTPOutgoingMsg,
+  EnterRoomMsg,
+  ETTPIncomingMsg
 } from './messages';
 
 // Bcrypt default salt rounds
@@ -45,8 +49,6 @@ try {
   SocketServer = require('ws').Server;
 }
 
-type ETTMessage = (player: Player, message: GenericMessage) => void;
-
 export interface EWebSocket extends wsD {
   msgId: number;
   tmpaux(data: any, cb?: (err: Error) => void): void;
@@ -59,30 +61,8 @@ export interface EWebSocketServer extends wsD.Server {
   clients: Set<EWebSocket>;
 }
 
-export interface ETTHandlers {
-  onStartChart: ETTMessage;
-  onStartingChart: ETTMessage;
-  onMissingChart: ETTMessage;
-  onHasChart: ETTMessage;
-  onSelectChart: ETTMessage;
-  onGameOver: ETTMessage;
-  onPing: ETTMessage;
-  onChat: ETTMessage;
-  onEnterOptions: ETTMessage;
-  onLeaveOptions: ETTMessage;
-  onLogin: ETTMessage;
-  onLogout: ETTMessage;
-  onLeaveRoom: ETTMessage;
-  onEnterRoom: ETTMessage;
-  onCreateRoom: ETTMessage;
-  onScore: ETTMessage;
-  onLeaveEval: ETTMessage;
-  onEnterEval: ETTMessage;
-  onGameplayUpdate: ETTMessage;
-}
-
 export interface ETTParams {
-  handlers: ETTHandlers | any;
+  handlers: ETTPMsgHandlers | any;
   allowAccountCreation: boolean | null;
   port: number | null;
   logPackets: boolean | null;
@@ -119,7 +99,7 @@ export class ETTServer {
   wss: EWebSocketServer;
 
   globalCommands: {
-    [key: string]: (player: Player, command: string, params: string[], msg: ChatMessage) => void;
+    [key: string]: (player: Player, command: string, params: string[], msg: ChatMsg) => void;
   };
 
   roomCommands: {
@@ -128,7 +108,7 @@ export class ETTServer {
       room: Room,
       command: string,
       params: string[],
-      msg: ChatMessage
+      msg: ChatMsg
     ) => void;
   };
 
@@ -148,7 +128,7 @@ export class ETTServer {
 
   globalPermissions: { [key: string]: [string] };
 
-  messageHandlers: { [key: string]: ETTMessage };
+  messageHandlers: ETTPMsgHandlers;
 
   dbConnectionFailed: boolean = false;
 
@@ -182,25 +162,25 @@ export class ETTServer {
     this.globalPermissions = {};
 
     this.messageHandlers = {
-      login: params.handlers.onLogin || this.onLogin,
-      leaveroom: params.handlers.onLeaveRoom || this.onLeaveRoom,
-      createroom: params.handlers.onCreateRoom || this.onCreateRoom,
-      enterroom: params.handlers.onEnterRoom || this.onEnterRoom,
-      ping: params.handlers.onPing || ETTServer.onPing,
-      chat: params.handlers.onChat || this.onChat,
-      selectchart: params.handlers.onSelectChart || ETTServer.onSelectChart,
-      startchart: params.handlers.onStartChart || this.onStartChart,
-      gameover: params.handlers.onGameOver || this.onGameOver,
-      haschart: params.handlers.onHasChart || ETTServer.onHasChart,
-      missingchart: params.handlers.onMissingChart || ETTServer.onMissingChart,
-      startingchart: params.handlers.onStartingChart || this.onStartingChart,
-      leaveoptions: params.handlers.onLeaveOptions || this.onLeaveOptions,
-      enteroptions: params.handlers.onEnterOptions || this.onEnterOptions,
-      logout: params.handlers.onLogout || ETTServer.onLogout,
-      entereval: params.handlers.onEnterEval || this.onEnterEval,
-      gameplayupdate: params.handlers.onGameplayUpdate || ETTServer.onGameplayUpdate,
-      leaveeval: params.handlers.onLeaveEval || this.onLeaveEval,
-      score: params.handlers.onScore || ETTServer.onScore
+      login: params.handlers.login || this.onLogin,
+      leaveroom: params.handlers.leaveroom || this.onLeaveRoom,
+      createroom: params.handlers.createroom || this.onCreateRoom,
+      enterroom: params.handlers.enterroom || this.onEnterRoom,
+      ping: params.handlers.ping || ETTServer.onPing,
+      chat: params.handlers.chat || this.onChat,
+      selectchart: params.handlers.selectchart || ETTServer.onSelectChart,
+      startchart: params.handlers.startchart || this.onStartChart,
+      gameover: params.handlers.gameover || this.onGameOver,
+      haschart: params.handlers.haschart || ETTServer.onHasChart,
+      missingchart: params.handlers.missingchart || ETTServer.onMissingChart,
+      startingchart: params.handlers.startingchart || this.onStartingChart,
+      leaveoptions: params.handlers.leaveoptions || this.onLeaveOptions,
+      enteroptions: params.handlers.enteroptions || this.onEnterOptions,
+      logout: params.handlers.logout || this.onLogout,
+      entereval: params.handlers.entereval || this.onEnterEval,
+      gameplayupdate: params.handlers.gameplayupdate || ETTServer.onGameplayUpdate,
+      leaveeval: params.handlers.leaveeval || this.onLeaveEval,
+      score: params.handlers.score || ETTServer.onScore
     };
 
     // server
@@ -244,7 +224,7 @@ export class ETTServer {
       });
       this.discordClient.on('error', console.error);
 
-      this.discordClient.on('message', (msg: GenericMessage) => {
+      this.discordClient.on('message', (msg: discord.Message) => {
         if (msg.channel.id !== serv.discordChannelId || msg.author.bot) {
           return;
         }
@@ -266,7 +246,7 @@ export class ETTServer {
       pm: (player: Player, command: string, params: string[]) => {
         this.pm(player, params[0], params.slice(1).join(' '));
       },
-      shrug: (player: Player, command: string, params: string[], msg: ChatMessage) => {
+      shrug: (player: Player, command: string, params: string[], msg: ChatMsg) => {
         this.onChat(player, {
           msg: '¯\\_(ツ)_/¯',
           tab: msg.tab,
@@ -324,7 +304,7 @@ export class ETTServer {
     };
   }
 
-  addRoom(message: RoomMessage, creator: Player) {
+  addRoom(message: RoomMsg, creator: Player) {
     const room = new Room(message.name, message.desc, message.pass, creator);
 
     this.currentRooms.push(room);
@@ -430,7 +410,7 @@ export class ETTServer {
     });
   }
 
-  sendAll(message: GenericMessage) {
+  sendAll(message: ETTPOutgoingMsg) {
     this.wss.clients.forEach(client => {
       client.player.send(message);
     });
@@ -545,11 +525,15 @@ export class ETTServer {
           logger.debug(`in: ${strMessage}`);
         }
 
-        const message = JSON.parse(strMessage);
-        const handler = this.messageHandlers[message.type];
+        // TODO: Validate json input here before casting?
+        const message: ETTPIncomingMsg = JSON.parse(strMessage);
+        const msgtype = message.type;
+        const handler = this.messageHandlers[msgtype];
 
         if (handler) {
           handler.call(this, ws.player, message.payload);
+        } else {
+          logger.error('Unknown ETTP msg type: {}', msgtype);
         }
       });
     });
@@ -578,11 +562,11 @@ export class ETTServer {
     }, this.pingInterval);
   }
 
-  static onLogout() {
-    // TODO
+  onLogout(player: Player) {
+    this.removePlayer(player);
   }
 
-  static onSelectChart(player: Player, message: ChartMessage) {
+  static onSelectChart(player: Player, message: ChartMsg) {
     if (!player.room) {
       player.sendPM(`${systemPrepend}You're not in a room`);
       return;
@@ -616,7 +600,7 @@ export class ETTServer {
     this.playerList.forEach(p => p.send(makeMessage('lobbyuserlistupdate', { on: [player.user] })));
   }
 
-  onStartChart(player: Player, message: ChartMessage) {
+  onStartChart(player: Player, message: ChartMsg) {
     if (!player.room) {
       player.sendPM(`${systemPrepend}You're not in a room`);
       return;
@@ -641,13 +625,13 @@ export class ETTServer {
     }
   }
 
-  static onGameplayUpdate(player: Player, message: GenericMessage) {
+  static onGameplayUpdate(player: Player, message: GameplayUpdateMsg) {
     player.gameplayState.wife = message.wife;
     player.gameplayState.jdgstr = message.jdgstr;
     if (player.room) player.room.onGameplayUpdate();
   }
 
-  onLogin(player: Player, message: LoginMessage) {
+  onLogin(player: Player, message: LoginMsg) {
     if (!message.user || !message.pass) {
       player.send(
         makeMessage('login', {
@@ -746,7 +730,7 @@ export class ETTServer {
     }
   }
 
-  EOLogin(player: Player, { user, pass }: LoginMessage) {
+  EOLogin(player: Player, { user, pass }: LoginMsg) {
     request.post(
       {
         url: 'https://api.etternaonline.com/v1/login',
@@ -825,7 +809,7 @@ export class ETTServer {
     this.updateRoomState(player.room);
   }
 
-  static onScore(player: Player, message: GenericMessage) {
+  static onScore(player: Player, message: ScoreMsg) {
     if (!player.user || !player.room) {
       return;
     }
@@ -840,7 +824,7 @@ export class ETTServer {
     }
   }
 
-  onCreateRoom(player: Player, message: RoomMessage) {
+  onCreateRoom(player: Player, message: RoomMsg) {
     if (!player.user) {
       return;
     }
@@ -875,7 +859,7 @@ export class ETTServer {
     room.refreshUserList();
   }
 
-  onEnterRoom(player: Player, message: EnterRoomMessage) {
+  onEnterRoom(player: Player, message: EnterRoomMsg) {
     if (!player.user) {
       return;
     }
@@ -893,7 +877,7 @@ export class ETTServer {
     else {
       player.readystate = false;
       if (!message.desc) message.desc = '';
-      player.room = this.addRoom(<RoomMessage>message, player);
+      player.room = this.addRoom(<RoomMsg>message, player);
       player.send(makeMessage('enterroom', { entered: true }));
     }
   }
@@ -904,7 +888,7 @@ export class ETTServer {
     }
   }
 
-  onCommand(player: Player, message: ChatMessage, commandName: string, params: string[]) {
+  onCommand(player: Player, message: ChatMsg, commandName: string, params: string[]) {
     if (player.room) {
       const command = this.roomCommands[commandName.toLocaleLowerCase()];
       if (command) {
@@ -932,7 +916,7 @@ export class ETTServer {
     return playerColor;
   }
 
-  onChat(player: Player, message: ChatMessage) {
+  onChat(player: Player, message: ChatMsg) {
     if (!player.user) {
       return;
     }
@@ -993,7 +977,7 @@ export class ETTServer {
         this.pm(player, message.tab, message.msg);
         break;
       default:
-        logger.error('unknown msg type: {}', message.msgtype);
+        logger.error('Unknown chat msg type: {}', message.msgtype);
         break;
     }
   }

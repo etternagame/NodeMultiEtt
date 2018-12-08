@@ -1,7 +1,7 @@
 import Chart from './chart';
 import { Player, PLAYING, READY } from './player';
 
-import { ChartMessage, GenericMessage, makeMessage } from './messages';
+import { ChartMsg, makeMessage, ETTPOutgoingMsg } from './messages';
 
 import {
   colorize,
@@ -152,7 +152,7 @@ export class Room {
     return selectedChart;
   }
 
-  startChart(player: Player, message: ChartMessage) {
+  startChart(player: Player, message: ChartMsg) {
     if (this.countdown === true) {
       const err = this.allReady(player);
       if (err) {
@@ -235,7 +235,7 @@ export class Room {
     );
   }
 
-  selectChart(player: Player, message: ChartMessage) {
+  selectChart(player: Player, message: ChartMsg) {
     this.chart = new Chart(message, player);
 
     this.send(makeMessage('selectchart', { chart: this.serializeChart() }));
@@ -252,7 +252,11 @@ export class Room {
   refreshUserList() {
     this.send(
       makeMessage('userlist', {
-        players: this.players.map(x => ({ name: x.user, status: x.state + 1, ready: x.readystate }))
+        players: this.players.map(x => ({
+          name: x.user,
+          status: x.state + 1,
+          ready: x.readystate
+        }))
       })
     );
   }
@@ -267,7 +271,12 @@ export class Room {
 
     player.state = READY;
 
-    if (this.chart) player.send(makeMessage('selectchart', { chart: this.serializeChart() }));
+    if (this.chart)
+      player.send(
+        makeMessage('selectchart', {
+          chart: this.serializeChart()
+        })
+      );
 
     this.refreshUserList();
   }
@@ -302,15 +311,15 @@ export class Room {
     }
   }
 
-  send(message: GenericMessage) {
+  send(message: ETTPOutgoingMsg) {
     this.players.forEach(pl => {
       pl.send(message);
     });
   }
 
-  sendChat(chatMessage: string) {
+  sendChat(ChatMsg: string) {
     this.players.forEach(pl => {
-      pl.sendChat(1, chatMessage, this.name);
+      pl.sendChat(1, ChatMsg, this.name);
     });
   }
 

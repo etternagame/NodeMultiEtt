@@ -1,6 +1,6 @@
 import Player from './player';
 
-import { ChartMessage } from './messages';
+import { ChartMsg } from './messages';
 
 class Chart {
   title: string;
@@ -21,7 +21,7 @@ class Chart {
 
   chartkey: string;
 
-  constructor(message: ChartMessage, player: Player) {
+  constructor(message: ChartMsg, player: Player) {
     this.title = message.title;
     this.subtitle = message.subtitle;
     this.artist = message.artist;

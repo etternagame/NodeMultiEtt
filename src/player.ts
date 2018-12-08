@@ -2,7 +2,7 @@ import { EWebSocket } from './ettServer';
 
 import { Room, SerializedRoom } from './room';
 
-import { makeMessage, GenericMessage, PRIVATE_MESSAGE } from './messages';
+import { makeMessage, ETTPOutgoingMsg, PRIVATE_MESSAGE } from './messages';
 
 import { color, removeMultiColor, systemPrepend } from './utils';
 
@@ -23,11 +23,7 @@ export class Player {
 
   readystate: boolean;
 
-  gameplayState: {
-    wife: number;
-    user: string;
-    jdgstr: string;
-  };
+  gameplayState: { wife: number; user: string; jdgstr: string };
 
   room: Room | null;
 
@@ -79,7 +75,7 @@ export class Player {
     );
   }
 
-  send(message: GenericMessage) {
+  send(message: ETTPOutgoingMsg) {
     message.id = this.ws.msgId;
     this.ws.msgId = this.ws.msgId + 1;
 
