@@ -1,2 +1,2 @@
 #!/bin/bash
-forever stop multi
+forever stopall
