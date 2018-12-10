@@ -246,6 +246,13 @@ export class ETTServer {
       pm: (player: Player, command: string, params: string[]) => {
         this.pm(player, params[0], params.slice(1).join(' '));
       },
+      wave: (player: Player, command: string, params: string[], msg: ChatMsg) => {
+        this.onChat(player, {
+          msg: '( * ^ *) ノシ',
+          tab: msg.tab,
+          msgtype: msg.msgtype
+        });
+      },
       shrug: (player: Player, command: string, params: string[], msg: ChatMsg) => {
         this.onChat(player, {
           msg: '¯\\_(ツ)_/¯',
