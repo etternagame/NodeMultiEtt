@@ -718,7 +718,7 @@ export class ETTServer {
     const userLength = message.user.length;
     if (
       userLength <= minLength ||
-      userLength <= maxLength ||
+      userLength >= maxLength ||
       passLength <= minLength ||
       passLength >= maxLength
     ) {

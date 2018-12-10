@@ -1,2 +1,2 @@
 #!/bin/bash
-screen -S multi -X quit
+forever stopall
