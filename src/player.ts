@@ -23,6 +23,8 @@ export class Player {
 
   client: string;
 
+  packs: string[];
+
   state: number;
 
   readystate: boolean;
@@ -34,13 +36,14 @@ export class Player {
   constructor(_user: string, _pass: string, _ws: EWebSocket) {
     this.user = _user;
     this.pass = _pass;
-    this.client = '';
-    this.ettpcver = 0;
     this.ws = _ws;
     this.state = READY;
     this.readystate = false;
     this.room = null;
     this.gameplayState = { wife: 0, user: _user, jdgstr: '' };
+    this.client = '';
+    this.packs = [];
+    this.ettpcver = 0;
   }
 
   sendPM(msg: string) {

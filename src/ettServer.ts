@@ -714,6 +714,9 @@ export class ETTServer {
   onHello(player: Player, message: HelloMsg) {
     player.ettpcver = parseInt(message.version) || 0;
     player.client = message.client || '';
+    const packs = message.packs;
+    if (Array.isArray(packs)) player.packs = packs;
+    else player.packs = [];
   }
 
   onLogin(player: Player, message: LoginMsg) {

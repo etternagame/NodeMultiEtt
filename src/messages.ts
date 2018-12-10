@@ -66,6 +66,7 @@ export interface EnterEvalMsg {}
 export interface HelloMsg {
   version: string;
   client: string;
+  packs: string[] | null;
 }
 
 export type ETTPMsgHandler<MsgType> = (player: Player, message: MsgType) => void;
