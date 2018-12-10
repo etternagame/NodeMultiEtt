@@ -1,8 +1,8 @@
 const winston = require('winston');
 const argv = require('minimist')(process.argv.slice(2));
-const ETTServer = require('./built/export.js').Server;
 const Table = require('cli-table');
 const colors = require('colors');
+const ETTServer = require('./built/export.js').Server;
 require('dotenv').load();
 
 const logger = winston.createLogger({

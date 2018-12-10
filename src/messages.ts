@@ -63,9 +63,15 @@ export interface GameplayUpdateMsg {
 }
 export interface EnterEvalMsg {}
 
+export interface HelloMsg {
+  version: string;
+  client: string;
+}
+
 export type ETTPMsgHandler<MsgType> = (player: Player, message: MsgType) => void;
 export interface ETTPMsgHandlers {
   startchart: ETTPMsgHandler<ChartMsg>;
+  hello: ETTPMsgHandler<HelloMsg>;
   startingchart: ETTPMsgHandler<StartingChartMsg>;
   missingchart: ETTPMsgHandler<MissingChartMsg>;
   haschart: ETTPMsgHandler<HasChartMsg>;

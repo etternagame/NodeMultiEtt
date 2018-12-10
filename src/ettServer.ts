@@ -23,11 +23,13 @@ import {
   GameplayUpdateMsg,
   ChartMsg,
   LoginMsg,
+  HelloMsg,
   ChatMsg,
   ETTPOutgoingMsg,
   EnterRoomMsg,
   ETTPIncomingMsg
 } from './messages';
+import { Int32 } from 'bson';
 
 // Bcrypt default salt rounds
 const saltRounds = 10;
@@ -162,6 +164,7 @@ export class ETTServer {
     this.globalPermissions = {};
 
     this.messageHandlers = {
+      hello: params.handlers.hello || this.onHello,
       login: params.handlers.login || this.onLogin,
       leaveroom: params.handlers.leaveroom || this.onLeaveRoom,
       createroom: params.handlers.createroom || this.onCreateRoom,
@@ -610,7 +613,7 @@ export class ETTServer {
         if (handler) {
           handler.call(this, ws.player, message.payload);
         } else {
-          logger.error('Unknown ETTP msg type: {}', msgtype);
+          logger.error(`Unknown ETTP msg type: ${msgtype}`);
         }
       });
     });
@@ -706,6 +709,11 @@ export class ETTServer {
     player.gameplayState.wife = message.wife;
     player.gameplayState.jdgstr = message.jdgstr;
     if (player.room) player.room.onGameplayUpdate();
+  }
+
+  onHello(player: Player, message: HelloMsg) {
+    player.ettpcver = parseInt(message.version) || 0;
+    player.client = message.client || '';
   }
 
   onLogin(player: Player, message: LoginMsg) {
@@ -1058,7 +1066,7 @@ export class ETTServer {
         this.pm(player, message.tab, message.msg);
         break;
       default:
-        logger.error('Unknown chat msg type: {}', message.msgtype);
+        logger.error(`Unknown chat msg type: ${message.msgtype}`);
         break;
     }
   }

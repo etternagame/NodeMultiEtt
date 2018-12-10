@@ -1,21 +1,22 @@
 const WebSocket = require('ws');
+
 var gotten = 0;
 var sent = 0;
 function createTestClient(user, pass, message, chatinterval, room) {
-  var conn = new WebSocket(
+  const conn = new WebSocket(
     'ws://nodejs-mongodb-example-ettmulti.a3c1.starter-us-west-1.openshiftapps.com:80'
   );
-  var int = null;
-  conn.onopen = function() {
+  let int = null;
+  conn.addEventListener('open', () => {
     // connection is opened and ready to use
-  };
+  });
   conn.onclose = function(reason) {
     console.log(reason.reason);
     if (int) clearInterval(int);
   };
-  var id = 1;
+  let id = 1;
   function dealWith(msg) {
-    id = id + 1;
+    id += 1;
     function send(x) {
       if (conn.readyState != conn.CLOSED) conn.send(x);
     }
@@ -24,23 +25,23 @@ function createTestClient(user, pass, message, chatinterval, room) {
         send(
           JSON.stringify({
             type: 'login',
-            id: id,
+            id,
             payload: {
-              user: user,
-              pass: pass
+              user,
+              pass
             }
           })
         );
         break;
       case 'chat':
-        gotten = gotten + 1;
+        gotten += 1;
         break;
       case 'login':
         if (msg.payload.logged) {
           send(
             JSON.stringify({
               type: 'createroom',
-              id: id,
+              id,
               payload: {
                 name: room,
                 desc: '',
@@ -51,7 +52,7 @@ function createTestClient(user, pass, message, chatinterval, room) {
           send(
             JSON.stringify({
               type: 'enterroom',
-              id: id,
+              id,
               payload: {
                 name: room,
                 desc: '',
@@ -60,11 +61,11 @@ function createTestClient(user, pass, message, chatinterval, room) {
             })
           );
           int = setInterval(() => {
-            sent = sent + 1;
+            sent += 1;
             send(
               JSON.stringify({
                 type: 'chat',
-                id: id,
+                id,
                 payload: {
                   msgtype: room ? 1 : 0,
                   msg: message,
@@ -74,33 +75,32 @@ function createTestClient(user, pass, message, chatinterval, room) {
             );
           }, chatinterval);
         } else {
-          //???
+          // ???
         }
         break;
       case 'ping':
-        send(JSON.stringify({ type: 'ping', id: id }));
+        send(JSON.stringify({ type: 'ping', id }));
         break;
     }
   }
-  conn.onmessage = function(message) {
+  conn.addEventListener('message', message => {
     // try to decode json (I assume that each message
     // from server is json)
     try {
-      var json = JSON.parse(message.data);
+      const json = JSON.parse(message.data);
       dealWith(json);
     } catch (e) {
       console.log("This doesn't look like a valid JSON: ", message.data);
-      return;
     }
     // handle incoming message
-  };
+  });
 }
 function randomstr(n) {
-  var text = '';
-  var possible =
+  let text = '';
+  const possible =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstu][\';}{":?><s\\!@#$%^&*()_+tring,.vwxyz0123456789';
 
-  for (var i = 0; i < n; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
+  for (let i = 0; i < n; i++) text += possible.charAt(Math.floor(Math.random() * possible.length));
 
   return text;
 }
@@ -113,7 +113,7 @@ const msgInterval = 10000;
 // players increases sent
 for (i = 0; i < players; i++) {
   createTestClient(
-    'asdsd' + JSON.stringify(i),
+    `asdsd${JSON.stringify(i)}`,
     'asdsd',
     randomstr(msgSize),
     msgInterval,
@@ -123,11 +123,8 @@ for (i = 0; i < players; i++) {
 
 setInterval(() => {
   console.log(
-    'gotten ' +
-      JSON.stringify(gotten) +
-      ' sent ' +
-      JSON.stringify(sent) +
-      ' shouldGet ~= ' +
-      JSON.stringify((sent * players) / rooms)
+    `gotten ${JSON.stringify(gotten)} sent ${JSON.stringify(sent)} shouldGet ~= ${JSON.stringify(
+      (sent * players) / rooms
+    )}`
   );
 }, 10000);
