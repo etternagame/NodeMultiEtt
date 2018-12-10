@@ -136,9 +136,9 @@ export class Room {
       return null;
     }
     if (nonReadyPlayers.length === 1) {
-      return `${systemPrepend} ${nonReadyPlayers[0].user} is not ready.`;
+      return `${nonReadyPlayers[0].user} is not ready.`;
     }
-    return `${systemPrepend} ${Room.playerListToString(nonReadyPlayers)} are not ready.`;
+    return `${Room.playerListToString(nonReadyPlayers)} are not ready.`;
   }
 
   serializeChart(chart: Chart | null = this.chart) {
@@ -162,7 +162,7 @@ export class Room {
     if (this.countdown === true) {
       const err = this.allReady(player);
       if (err) {
-        this.sendChat(err);
+        this.sendChat(`${systemPrepend}${err}`);
         return;
       }
       this.players.forEach((p: Player) => {
@@ -210,7 +210,7 @@ export class Room {
       }
       const err = this.allReady(player);
       if (err) {
-        this.sendChat(err);
+        this.sendChat(`${systemPrepend}${err}`);
         return;
       }
       this.players.forEach((p: Player) => {
@@ -358,13 +358,11 @@ export class Room {
       busyPlayers.forEach(pl => {
         err = `${err} ${pl.user}, `;
       });
-      err = `${err.substring(0, err.length - 2)} are busy`;
+      err = `${err.substring(0, err.length - 2)} ${busyPlayers.length > 1 ? 'are' : 'is'} busy`;
+      return err;
     }
 
     err = this.allReady(playerWhoSelected);
-    if (err) {
-      err = `${err} ${err.length > 1 ? 'are' : 'is'} busy`;
-    }
 
     return err;
   }
