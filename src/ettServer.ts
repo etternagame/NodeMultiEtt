@@ -712,7 +712,7 @@ export class ETTServer {
       return;
     }
 
-    const maxLength = 16;
+    const maxLength = 128;
     const minLength = 2;
     const passLength = message.pass.length;
     const userLength = message.user.length;
