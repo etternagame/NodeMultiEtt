@@ -287,6 +287,11 @@ export class ETTServer {
       ready: (player: Player) => {
         player.toggleReady();
       },
+      commonpacks: (player: Player, room: Room, command: string, params: string[]) => {
+        const commonPacks = room.commonPacks();
+        if (commonPacks.length > 0) room.sendChat(`Common packs: ${commonPacks.join(',')}`);
+        else room.sendChat(`No pack in common between the players in the room :(`);
+      },
       countdown: (player: Player, room: Room, command: string, params: string[]) => {
         room.enableCountdown(player, command, params);
       },

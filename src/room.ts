@@ -228,6 +228,23 @@ export class Room {
     }
   }
 
+  commonPacks() {
+    const packArrays = this.players.map(p => p.packs).shift();
+    let result: string[] | null = null;
+    if (packArrays)
+      result = packArrays.reduce<string[]>((res, v) => {
+        if (
+          res.indexOf(v) === -1 &&
+          packArrays.every(a => {
+            return a.indexOf(v) !== -1;
+          })
+        )
+          res.push(v);
+        return res;
+      }, []);
+    return result || [];
+  }
+
   onGameplayUpdate() {
     this.send(
       makeMessage('leaderboard', {
