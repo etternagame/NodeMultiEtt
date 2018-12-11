@@ -985,9 +985,10 @@ export class ETTServer {
     }
   }
 
-  onCommand(player: Player, message: ChatMsg, commandName: string, params: string[]) {
+  onCommand(player: Player, message: ChatMsg, _commandName: string, params: string[]) {
+    const commandName = _commandName.toLocaleLowerCase();
     if (player.room) {
-      const command = this.roomCommands[commandName.toLocaleLowerCase()];
+      const command = this.roomCommands[commandName];
       if (command) {
         command(player, player.room, commandName, params, message);
         return true;
