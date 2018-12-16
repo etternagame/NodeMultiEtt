@@ -4,11 +4,13 @@ export function makeMessage(type: string, payload: object | null = null): ETTPOu
   return payload ? { type, payload } : { type };
 }
 
+export interface BaseMsg {};
+
 export const LOBBY_MESSAGE = 0;
 export const ROOM_MESSAGE = 1;
 export const PRIVATE_MESSAGE = 2;
 
-export interface ChartMsg {
+export interface ChartMsg extends BaseMsg {
   title: string;
   subtitle: string;
   artist: string;
@@ -19,78 +21,60 @@ export interface ChartMsg {
   meter: number;
 }
 
-export interface ChatMsg {
+export interface ChatMsg extends BaseMsg {
   msg: string;
   msgtype: number;
   tab: string;
   [key: string]: string | number;
 }
 
-export interface RoomMsg {
+export interface RoomMsg extends BaseMsg {
   name: string;
   desc: string;
   pass: string;
 }
 
-export interface EnterRoomMsg {
+export interface EnterRoomMsg extends BaseMsg {
   name: string;
   pass: string | null;
   desc: string | null;
 }
 
-export interface LoginMsg {
+export interface LoginMsg extends BaseMsg {
   user: string;
   pass: string;
 }
 
-export interface StartingChartMsg {}
+export interface StartingChartMsg extends BaseMsg {}
 
-export interface MissingChartMsg {}
+export interface MissingChartMsg extends BaseMsg {}
 
-export interface HasChartMsg {}
-export interface GameOverMsg {}
-export interface PingMsg {}
-export interface LeaveOptionsMsg {}
-export interface EnterOptiongMsg {}
-export interface LogoutMsg {}
-export interface LeaveRoomMsg {}
+export interface HasChartMsg extends BaseMsg {}
+export interface GameOverMsg extends BaseMsg {}
+export interface PingMsg extends BaseMsg {}
+export interface LeaveOptionsMsg extends BaseMsg {}
+export interface EnterOptiongMsg extends BaseMsg {}
+export interface LogoutMsg extends BaseMsg {}
+export interface LeaveRoomMsg extends BaseMsg {}
 export type CreateRoomMsg = RoomMsg;
-export interface ScoreMsg {}
-export interface LeaveEvalMsg {}
-export interface GameplayUpdateMsg {
+export interface ScoreMsg extends BaseMsg {}
+export interface LeaveEvalMsg extends BaseMsg {}
+export interface GameplayUpdateMsg extends BaseMsg {
   wife: number;
   jdgstr: string;
 }
-export interface EnterEvalMsg {}
+export interface EnterEvalMsg extends BaseMsg {}
 
-export interface HelloMsg {
+export interface HelloMsg extends BaseMsg {
   version: string;
   client: string;
   packs: string[] | null;
 }
 
-export type ETTPMsgHandler<MsgType> = (player: Player, message: MsgType) => void;
+export type ETTPMsgHandler = (player: Player, message: BaseMsg) => void;
+
 export interface ETTPMsgHandlers {
-  startchart: ETTPMsgHandler<ChartMsg>;
-  hello: ETTPMsgHandler<HelloMsg>;
-  startingchart: ETTPMsgHandler<StartingChartMsg>;
-  missingchart: ETTPMsgHandler<MissingChartMsg>;
-  haschart: ETTPMsgHandler<HasChartMsg>;
-  selectchart: ETTPMsgHandler<ChartMsg>;
-  gameover: ETTPMsgHandler<GameOverMsg>;
-  ping: ETTPMsgHandler<PingMsg>;
-  chat: ETTPMsgHandler<ChatMsg>;
-  enteroptions: ETTPMsgHandler<EnterOptiongMsg>;
-  leaveoptions: ETTPMsgHandler<LeaveOptionsMsg>;
-  login: ETTPMsgHandler<LoginMsg>;
-  logout: ETTPMsgHandler<LogoutMsg>;
-  leaveroom: ETTPMsgHandler<LeaveRoomMsg>;
-  enterroom: ETTPMsgHandler<EnterRoomMsg>;
-  createroom: ETTPMsgHandler<CreateRoomMsg>;
-  score: ETTPMsgHandler<ScoreMsg>;
-  leaveeval: ETTPMsgHandler<LeaveEvalMsg>;
-  entereval: ETTPMsgHandler<EnterEvalMsg>;
-  gameplayupdate: ETTPMsgHandler<GameplayUpdateMsg>;
+  [key: string]: ETTPMsgHandler;
 }
 
 export interface ETTPOutgoingMsg {
