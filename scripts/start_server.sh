@@ -1,3 +1,3 @@
 #!/bin/bash
 
-forever start --id "multi" /home/ubuntu/NodeEttMulti/start.js --MONGODB_URI mongodb://localhost:27017/
+forever start --id "multi" /home/ubuntu/NodeEttMulti/start.ts --MONGODB_URI mongodb://localhost:27017/

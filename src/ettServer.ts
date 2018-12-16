@@ -69,7 +69,7 @@ export interface ETTParams {
   port: number | null;
   logPackets: boolean | null;
   mongoDBURL: string | null;
-  ip: string | null;
+  ip: string | undefined;
   mongoDBName: string | null;
   serverName: string | null;
   pingInterval: number | null;

@@ -1,8 +1,9 @@
+import { ETTServer } from './src/ettServer';
+
 const winston = require('winston');
 const argv = require('minimist')(process.argv.slice(2));
 const Table = require('cli-table');
 const colors = require('colors');
-const ETTServer = require('./built/export.js').Server;
 require('dotenv').load();
 
 const logger = winston.createLogger({
@@ -17,6 +18,7 @@ const PORT =
   argv.PORT ||
   process.env.PORT ||
   8765;
+
 const LOGPACKETS = argv.LOG_PACKETS || process.env.LOG_PACKETS || true;
 const MONGODB_URI = argv.MONGODB_URI || process.env.MONGODB_URI;
 const PING_INTERVAL = argv.PING_INTERVAL || process.env.PING_INTERVAL || 15000;
@@ -24,12 +26,17 @@ const BOT_TOKEN = argv.BOT_TOKEN || process.env.BOT_TOKEN || '';
 const OPT_IP = process.env.IP || process.env.OPENSHIFT_NODEJS_IP;
 
 if ('help' in argv || !MONGODB_URI) {
-  logger.info('Example: '.bold.blue);
+  logger.info(colors.bold.blue('Example: '));
   logger.info('node start.js --MONGODB_URI mongodb://localhost:27017/ --DB_NAME etterna\n');
-  logger.info('Options: '.bold.blue);
+  logger.info(colors.bold.blue('Options: '));
 
   const table = new Table({
-    head: ['Option'.bold.red, 'Default'.bold.red, 'Example'.bold.red, 'Required'.bold.red]
+    head: [
+      colors.bold.red('Option'),
+      colors.bold.red('Default'),
+      colors.bold.red('Example'),
+      colors.bold.red('Required')
+    ]
   });
 
   table.push(
@@ -54,6 +61,10 @@ if ('help' in argv || !MONGODB_URI) {
 }
 
 const server = new ETTServer({
+  handlers: {},
+  allowAccountCreation: false,
+  serverName: 'Etterna Online',
+  pingCountToDisconnect: 2,
   pingInterval: PING_INTERVAL,
   logPackets: LOGPACKETS,
   port: PORT,
