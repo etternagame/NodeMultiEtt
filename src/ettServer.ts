@@ -53,7 +53,7 @@ try {
 
 export interface EWebSocket extends wsD {
   msgId: number;
-  tmpaux(data: any, cb?: (err: Error) => void): void;
+  tmpaux(data: any, cb?: (err?: Error) => void): void;
   _socket: any;
   pingsToAnswer: number;
   player: Player;
@@ -548,7 +548,7 @@ export class ETTServer {
     );
   }
 
-  async userExistsInDB(username: string): Promise<boolean> {
+  async userExistsInDB(username: string): Promise<boolean | null> {
     if (this.db) {
       return this.db.collection('accounts').findOne({ user: username });
     }
@@ -578,7 +578,8 @@ export class ETTServer {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
           } else {
-            logger.debug(`Connection closed so msg not sent: ${str}`);
+            logger.debug(`Connection closed so msg not
+ent: ${str}`);
           }
         };
       }
