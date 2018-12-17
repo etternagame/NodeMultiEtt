@@ -13,6 +13,7 @@ import { Room, SerializedRoom } from './room';
 import { colorize, opColor, ownerColor, playerColor, systemPrepend } from './utils';
 
 import {
+  ETTPMsgGuards,
   ROOM_MESSAGE,
   LOBBY_MESSAGE,
   PRIVATE_MESSAGE,
@@ -27,7 +28,8 @@ import {
   ChatMsg,
   ETTPOutgoingMsg,
   EnterRoomMsg,
-  ETTPIncomingMsg
+  ETTPIncomingMsg,
+  ETTPMsgHandler
 } from './messages';
 import { Int32 } from 'bson';
 
@@ -615,9 +617,10 @@ ent: ${str}`);
         const message: ETTPIncomingMsg = JSON.parse(strMessage);
         const msgtype = message.type;
         const handler = this.messageHandlers[msgtype];
+        const payload = message.payload;
 
-        if (handler) {
-          handler.call(this, ws.player, message.payload);
+        if (ETTPMsgGuards[msgtype](payload)) {
+          (<ETTPMsgHandler<typeof payload>>handler).call(this, ws.player, payload);
         } else {
           logger.error(`Unknown ETTP msg type: ${msgtype}`);
         }

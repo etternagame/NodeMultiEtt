@@ -45,11 +45,11 @@
     "typescript": "^3.2.2"
   },
   "scripts": {
-    "start": "npm run-script build && node start.js",
+    "start": "yarn run build && ts-node start.ts",
     "test": "echo test",
     "lint": "eslint --fix **/*.js",
     "format": "prettier --write **/*.{js,json,md}",
-    "postinstall": "npm run-script build",
+    "postinstall": "yarn run build",
     "build": "node ./node_modules/typescript/bin/tsc"
   },
   "husky": {
