@@ -1,4 +1,4 @@
-import * as wsD from 'ws';
+import * as wsD from "uws";
 import * as bcrypt from 'bcrypt';
 import * as mongodbD from 'mongodb';
 import * as express from 'express';
@@ -60,7 +60,7 @@ export interface EWebSocket extends wsD {
 }
 
 export interface EWebSocketServer extends wsD.Server {
-  clients: Set<EWebSocket>;
+  clients: EWebSocket[];
 }
 
 export interface ETTParams {
