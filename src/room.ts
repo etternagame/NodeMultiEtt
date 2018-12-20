@@ -351,8 +351,10 @@ export class Room {
       const operatorPlayers = this.players.filter(p =>
         this.ops.find(opUsername => opUsername === p.user)
       );
-
-      this.owner = operatorPlayers[Math.floor(Math.random() * operatorPlayers.length)];
+      
+      if (operatorPlayers.length > 0) {
+        this.owner = operatorPlayers[Math.floor(Math.random() * operatorPlayers.length)];
+      }
     }
 
     const auxUserList = this.players.filter(pl => pl.user !== this.owner.user);
