@@ -25,7 +25,7 @@ const PING_INTERVAL = argv.PING_INTERVAL || process.env.PING_INTERVAL || 15000;
 const BOT_TOKEN = argv.BOT_TOKEN || process.env.BOT_TOKEN || '';
 const OPT_IP = process.env.IP || process.env.OPENSHIFT_NODEJS_IP;
 
-if ('help' in argv || !MONGODB_URI) {
+if ('help' in argv) {
   logger.info(colors.bold.blue('Example: '));
   logger.info('node start.js --MONGODB_URI mongodb://localhost:27017/ --DB_NAME etterna\n');
   logger.info(colors.bold.blue('Options: '));
