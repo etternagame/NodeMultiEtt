@@ -41,12 +41,11 @@
     "husky": "^1.2.1",
     "lint-staged": "^8.1.0",
     "prettier": "^1.11.1",
-    "ts-node": "^7.0.1",
     "typescript": "^3.2.2",
     "typescript-eslint-parser": "^21.0.2"
   },
   "scripts": {
-    "start": "yarn run build && ts-node start.ts",
+    "start": "yarn run build && node built/start.js",
     "test": "echo test",
     "lint": "eslint --fix **/*.js",
     "format": "prettier --write **/*.{js,json,md}",
