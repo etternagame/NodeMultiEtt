@@ -7,5 +7,6 @@
     "sourceMap": true,
     "strict": true
   },
+  "files": ["start.ts"],
   "include": ["src/**/*"]
 }

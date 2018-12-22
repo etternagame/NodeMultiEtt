@@ -259,6 +259,13 @@ export class ETTServer {
           msgtype: msg.msgtype
         });
       },
+      lenny: (player: Player, command: string, params: string[], msg: ChatMsg) => {
+        this.onChat(player, {
+          msg: '( ͡° ͜ʖ ͡°)',
+          tab: msg.tab,
+          msgtype: msg.msgtype
+        });
+      },
       shrug: (player: Player, command: string, params: string[], msg: ChatMsg) => {
         this.onChat(player, {
           msg: '¯\\_(ツ)_/¯',
