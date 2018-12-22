@@ -52,8 +52,8 @@ export interface MissingChartMsg extends BaseMsg {}
 export interface HasChartMsg extends BaseMsg {}
 export interface GameOverMsg extends BaseMsg {}
 export interface PingMsg extends BaseMsg {}
-export interface LeaveOptionsMsg extends BaseMsg {}
-export interface EnterOptiongMsg extends BaseMsg {}
+export interface CloseOptionsMsg extends BaseMsg {}
+export interface OpenOptiongMsg extends BaseMsg {}
 export interface LogoutMsg extends BaseMsg {}
 export interface LeaveRoomMsg extends BaseMsg {}
 export type CreateRoomMsg = RoomMsg;
@@ -82,8 +82,8 @@ export interface ETTPMsgHandlers {
   gameover: ETTPMsgHandler<GameOverMsg>;
   ping: ETTPMsgHandler<PingMsg>;
   chat: ETTPMsgHandler<ChatMsg>;
-  enteroptions: ETTPMsgHandler<EnterOptiongMsg>;
-  leaveoptions: ETTPMsgHandler<LeaveOptionsMsg>;
+  openoptions: ETTPMsgHandler<OpenOptiongMsg>;
+  closeoptions: ETTPMsgHandler<CloseOptionsMsg>;
   login: ETTPMsgHandler<LoginMsg>;
   logout: ETTPMsgHandler<LogoutMsg>;
   leaveroom: ETTPMsgHandler<LeaveRoomMsg>;
@@ -102,37 +102,37 @@ export const ETTPMsgGuards = {
     return true;
   },
   startingchart: function(msg: any): msg is StartingChartMsg {
-    return msg !== undefined;
+    return true;
   },
   missingchart: function(msg: any): msg is MissingChartMsg {
     return msg !== undefined;
   },
   haschart: function(msg: any): msg is HasChartMsg {
-    return msg !== undefined;
+    return true;
   },
   selectchart: function(msg: any): msg is ChartMsg {
     return msg !== undefined;
   },
   gameover: function(msg: any): msg is GameOverMsg {
-    return msg !== undefined;
+    return true;
   },
   ping: function(msg: any): msg is PingMsg {
-    return msg !== undefined;
+    return true;
   },
   chat: function(msg: any): msg is ChatMsg {
     return msg !== undefined;
   },
-  enteroptions: function(msg: any): msg is EnterOptiongMsg {
-    return msg !== undefined;
+  openoptions: function(msg: any): msg is OpenOptiongMsg {
+    return true;
   },
-  leaveoptions: function(msg: any): msg is LeaveOptionsMsg {
-    return msg !== undefined;
+  closeoptions: function(msg: any): msg is CloseOptionsMsg {
+    return true;
   },
   login: function(msg: any): msg is LoginMsg {
     return msg !== undefined;
   },
   logout: function(msg: any): msg is LogoutMsg {
-    return msg !== undefined;
+    return true;
   },
   leaveroom: function(msg: any): msg is LeaveRoomMsg {
     return msg !== undefined;
@@ -147,10 +147,10 @@ export const ETTPMsgGuards = {
     return msg !== undefined;
   },
   leaveeval: function(msg: any): msg is LeaveEvalMsg {
-    return msg !== undefined;
+    return true;
   },
   entereval: function(msg: any): msg is EnterEvalMsg {
-    return msg !== undefined;
+    return true;
   },
   gameplayupdate: function(msg: any): msg is GameplayUpdateMsg {
     return msg !== undefined;
@@ -171,8 +171,8 @@ export interface ETTPIncomingMsg {
     | HasChartMsg
     | GameOverMsg
     | PingMsg
-    | LeaveOptionsMsg
-    | EnterOptiongMsg
+    | CloseOptionsMsg
+    | OpenOptiongMsg
     | LogoutMsg
     | LeaveRoomMsg
     | CreateRoomMsg

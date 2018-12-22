@@ -1,4 +1,4 @@
-import * as wsD from "uws";
+import * as wsD from 'uws';
 import * as bcrypt from 'bcrypt';
 import * as mongodbD from 'mongodb';
 import * as express from 'express';
@@ -24,6 +24,7 @@ import {
   GameplayUpdateMsg,
   ChartMsg,
   LoginMsg,
+  OpenOptiongMsg,
   HelloMsg,
   ChatMsg,
   ETTPOutgoingMsg,
@@ -179,8 +180,8 @@ export class ETTServer {
       haschart: params.handlers.haschart || ETTServer.onHasChart,
       missingchart: params.handlers.missingchart || ETTServer.onMissingChart,
       startingchart: params.handlers.startingchart || this.onStartingChart,
-      leaveoptions: params.handlers.leaveoptions || this.onLeaveOptions,
-      enteroptions: params.handlers.enteroptions || this.onEnterOptions,
+      closeoptions: params.handlers.leaveoptions || this.onLeaveOptions,
+      openoptions: params.handlers.enteroptions || this.onEnterOptions,
       logout: params.handlers.logout || this.onLogout,
       entereval: params.handlers.entereval || this.onEnterEval,
       gameplayupdate: params.handlers.gameplayupdate || ETTServer.onGameplayUpdate,
@@ -618,8 +619,8 @@ ent: ${str}`);
         const msgtype = message.type;
         const handler = this.messageHandlers[msgtype];
         const payload = message.payload;
-
-        if (ETTPMsgGuards[msgtype](payload)) {
+        const guard = ETTPMsgGuards[msgtype];
+        if (guard && guard(payload)) {
           (<ETTPMsgHandler<typeof payload>>handler).call(this, ws.player, payload);
         } else {
           logger.error(`Unknown ETTP msg type: ${msgtype}`);
@@ -872,7 +873,7 @@ ent: ${str}`);
     this.updateRoomState(player.room);
   }
 
-  onEnterOptions(player: Player) {
+  onEnterOptions(player: Player, msg: OpenOptiongMsg) {
     player.state = OPTIONS;
     this.updateRoomState(player.room);
   }
