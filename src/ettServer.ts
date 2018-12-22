@@ -176,6 +176,7 @@ export class ETTServer {
       chat: params.handlers.chat || this.onChat,
       selectchart: params.handlers.selectchart || ETTServer.onSelectChart,
       startchart: params.handlers.startchart || this.onStartChart,
+      notstartingchart: params.handlers.notstartingchart,
       gameover: params.handlers.gameover || this.onGameOver,
       haschart: params.handlers.haschart || ETTServer.onHasChart,
       missingchart: params.handlers.missingchart || ETTServer.onMissingChart,
