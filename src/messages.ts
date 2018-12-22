@@ -74,6 +74,7 @@ export interface OpenEvalMsg extends BaseMsg {}
 export type ETTPMsgHandler<MsgType> = (player: Player, message: MsgType) => void;
 export interface ETTPMsgHandlers {
   startchart: ETTPMsgHandler<ChartMsg>;
+  notstartingchart: ETTPMsgHandler<NotStartingChartMsg>;
   hello: ETTPMsgHandler<HelloMsg>;
   startingchart: ETTPMsgHandler<StartingChartMsg>;
   missingchart: ETTPMsgHandler<MissingChartMsg>;
