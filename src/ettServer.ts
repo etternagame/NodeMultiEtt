@@ -395,7 +395,7 @@ export class ETTServer {
       freerate: (player: Player, room: Room) => {
         room.freeRate(player);
       },
-      selectionMode: (player: Player, room: Room, command: string, params: string[]) => {
+      selectionmode: (player: Player, room: Room, command: string, params: string[]) => {
         room.selectionModeCommand(player, command, params);
       },
       roll: (player: Player, room: Room, command: string, params: string[]) => {
