@@ -33,6 +33,7 @@ export interface RoomMsg extends BaseMsg {
   desc: string;
   pass: string;
 }
+export type CreateRoomMsg = RoomMsg;
 
 export interface EnterRoomMsg extends BaseMsg {
   name: string;
@@ -45,10 +46,20 @@ export interface LoginMsg extends BaseMsg {
   pass: string;
 }
 
+export interface GameplayUpdateMsg extends BaseMsg {
+  wife: number;
+  jdgstr: string;
+}
+
+export interface HelloMsg extends BaseMsg {
+  version: string;
+  client: string;
+  packs: string[] | null;
+}
+
 export interface StartingChartMsg extends BaseMsg {}
-
+export interface NotStartingChartMsg extends BaseMsg {}
 export interface MissingChartMsg extends BaseMsg {}
-
 export interface HasChartMsg extends BaseMsg {}
 export interface GameOverMsg extends BaseMsg {}
 export interface PingMsg extends BaseMsg {}
@@ -56,20 +67,9 @@ export interface CloseOptionsMsg extends BaseMsg {}
 export interface OpenOptiongMsg extends BaseMsg {}
 export interface LogoutMsg extends BaseMsg {}
 export interface LeaveRoomMsg extends BaseMsg {}
-export type CreateRoomMsg = RoomMsg;
 export interface ScoreMsg extends BaseMsg {}
-export interface LeaveEvalMsg extends BaseMsg {}
-export interface GameplayUpdateMsg extends BaseMsg {
-  wife: number;
-  jdgstr: string;
-}
-export interface EnterEvalMsg extends BaseMsg {}
-
-export interface HelloMsg extends BaseMsg {
-  version: string;
-  client: string;
-  packs: string[] | null;
-}
+export interface CloseEvalMsg extends BaseMsg {}
+export interface OpenEvalMsg extends BaseMsg {}
 
 export type ETTPMsgHandler<MsgType> = (player: Player, message: MsgType) => void;
 export interface ETTPMsgHandlers {
@@ -90,8 +90,8 @@ export interface ETTPMsgHandlers {
   enterroom: ETTPMsgHandler<EnterRoomMsg>;
   createroom: ETTPMsgHandler<CreateRoomMsg>;
   score: ETTPMsgHandler<ScoreMsg>;
-  leaveeval: ETTPMsgHandler<LeaveEvalMsg>;
-  entereval: ETTPMsgHandler<EnterEvalMsg>;
+  closeeval: ETTPMsgHandler<CloseEvalMsg>;
+  openeval: ETTPMsgHandler<OpenEvalMsg>;
   gameplayupdate: ETTPMsgHandler<GameplayUpdateMsg>;
 }
 export const ETTPMsgGuards = {
@@ -104,8 +104,11 @@ export const ETTPMsgGuards = {
   startingchart: function(msg: any): msg is StartingChartMsg {
     return true;
   },
+  notstartingchart: function(msg: any): msg is NotStartingChartMsg {
+    return true;
+  },
   missingchart: function(msg: any): msg is MissingChartMsg {
-    return msg !== undefined;
+    return true;
   },
   haschart: function(msg: any): msg is HasChartMsg {
     return true;
@@ -146,10 +149,10 @@ export const ETTPMsgGuards = {
   score: function(msg: any): msg is ScoreMsg {
     return msg !== undefined;
   },
-  leaveeval: function(msg: any): msg is LeaveEvalMsg {
+  openeval: function(msg: any): msg is CloseEvalMsg {
     return true;
   },
-  entereval: function(msg: any): msg is EnterEvalMsg {
+  closeeval: function(msg: any): msg is OpenEvalMsg {
     return true;
   },
   gameplayupdate: function(msg: any): msg is GameplayUpdateMsg {
@@ -177,9 +180,9 @@ export interface ETTPIncomingMsg {
     | LeaveRoomMsg
     | CreateRoomMsg
     | ScoreMsg
-    | LeaveEvalMsg
+    | CloseEvalMsg
     | GameplayUpdateMsg
-    | EnterEvalMsg
+    | OpenEvalMsg
     | ChartMsg
     | LoginMsg
     | ChatMsg

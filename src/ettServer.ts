@@ -183,9 +183,9 @@ export class ETTServer {
       closeoptions: params.handlers.leaveoptions || this.onLeaveOptions,
       openoptions: params.handlers.enteroptions || this.onEnterOptions,
       logout: params.handlers.logout || this.onLogout,
-      entereval: params.handlers.entereval || this.onEnterEval,
+      openeval: params.handlers.entereval || this.onEnterEval,
       gameplayupdate: params.handlers.gameplayupdate || ETTServer.onGameplayUpdate,
-      leaveeval: params.handlers.leaveeval || this.onLeaveEval,
+      closeeval: params.handlers.leaveeval || this.onLeaveEval,
       score: params.handlers.score || ETTServer.onScore
     };
 
