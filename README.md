@@ -34,6 +34,23 @@ unique message id present in messages sent from the client.
 
 ### Client
 
+#### hello
+
+Should be sent once after connection is established. Sends server name and version.
+
+Response: None.
+
+```elixir
+{
+  *"type": "hello",
+  *"payload": {
+    "version":"0.54",
+    "client":"Etterna",
+    "packs": ["Otakus Dream 11"]
+  }
+}
+```
+
 #### ping
 
 Sent on response to a server ping message.
