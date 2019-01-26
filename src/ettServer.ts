@@ -355,16 +355,16 @@ export class ETTServer {
         }
       },
       kick: (player: Player, room: Room, command: string, [user]: string[]) => {
-        const playerToKick = this.findUser(user);
+        const playerToKick = user ? this.findUser(user) : false;
         if (playerToKick) {
           const isOp = room.isOperator(player);
           const isOwner = room.isOwner(player);
           const playerToKickIsOp = room.isOwner(playerToKick);
           if (isOwner || (isOp && !playerToKickIsOp)) {
-            this.leaveRoom(playerToKick);
             room.sendChat(`${systemPrepend}${playerToKick.user} was kicked`);
             playerToKick.sendChat(ROOM_MESSAGE, `${systemPrepend}You have been kicked`, room.name);
             playerToKick.send(makeMessage('kicked'));
+            this.leaveRoom(playerToKick);
           } else {
             player.sendChat(
               ROOM_MESSAGE,
@@ -496,6 +496,7 @@ export class ETTServer {
       room.sendChat(`${systemPrepend}${player.user} left`);
       this.updateRoom(room);
     }
+    player.send(makeMessage('leaveroom')); // So the client can exit the room when kicked
     player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Left room ${room.name}`);
   }
 
