@@ -16,6 +16,7 @@ export interface ChartMsg extends BaseMsg {
   artist: string;
   filehash: string;
   chartkey: string;
+  pack: string;
   rate: number;
   difficulty: number;
   meter: number;
@@ -96,9 +97,6 @@ export interface ETTPMsgHandlers {
   gameplayupdate: ETTPMsgHandler<GameplayUpdateMsg>;
 }
 export const ETTPMsgGuards = {
-  startchart: function(msg: any): msg is ChartMsg {
-    return msg !== undefined;
-  },
   hello: function(msg: any): msg is HelloMsg {
     return true;
   },
@@ -114,17 +112,11 @@ export const ETTPMsgGuards = {
   haschart: function(msg: any): msg is HasChartMsg {
     return true;
   },
-  selectchart: function(msg: any): msg is ChartMsg {
-    return msg !== undefined;
-  },
   gameover: function(msg: any): msg is GameOverMsg {
     return true;
   },
   ping: function(msg: any): msg is PingMsg {
     return true;
-  },
-  chat: function(msg: any): msg is ChatMsg {
-    return msg !== undefined;
   },
   openoptions: function(msg: any): msg is OpenOptiongMsg {
     return true;
@@ -132,29 +124,48 @@ export const ETTPMsgGuards = {
   closeoptions: function(msg: any): msg is CloseOptionsMsg {
     return true;
   },
-  login: function(msg: any): msg is LoginMsg {
-    return msg !== undefined;
-  },
   logout: function(msg: any): msg is LogoutMsg {
     return true;
   },
   leaveroom: function(msg: any): msg is LeaveRoomMsg {
-    return msg !== undefined;
-  },
-  enterroom: function(msg: any): msg is EnterRoomMsg {
-    return msg !== undefined;
-  },
-  createroom: function(msg: any): msg is CreateRoomMsg {
-    return msg !== undefined;
-  },
-  score: function(msg: any): msg is ScoreMsg {
-    return msg !== undefined;
+    return true;
   },
   openeval: function(msg: any): msg is CloseEvalMsg {
     return true;
   },
   closeeval: function(msg: any): msg is OpenEvalMsg {
     return true;
+  },
+  score: function(msg: any): msg is ScoreMsg {
+    return true;
+  },
+  startchart: function(msg: any): msg is ChartMsg {
+    return msg !== undefined && msg !== null && typeof msg.title == 'string';
+  },
+  selectchart: function(msg: any): msg is ChartMsg {
+    return msg !== undefined && msg !== null && typeof msg.title == 'string';
+  },
+  chat: function(msg: any): msg is ChatMsg {
+    return (
+      msg !== undefined &&
+      msg !== null &&
+      typeof msg.msgtype == 'number' &&
+      typeof msg.msg == 'string'
+    );
+  },
+  login: function(msg: any): msg is LoginMsg {
+    return (
+      msg !== undefined &&
+      msg !== null &&
+      typeof msg.user == 'string' &&
+      typeof msg.pass == 'string'
+    );
+  },
+  enterroom: function(msg: any): msg is EnterRoomMsg {
+    return msg !== undefined && msg !== null && typeof msg.title == 'string';
+  },
+  createroom: function(msg: any): msg is CreateRoomMsg {
+    return msg !== undefined && msg !== null && typeof msg.title == 'string';
   },
   gameplayupdate: function(msg: any): msg is GameplayUpdateMsg {
     return msg !== undefined;
