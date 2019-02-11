@@ -24,6 +24,7 @@ const MONGODB_URI = argv.MONGODB_URI || process.env.MONGODB_URI;
 const PING_INTERVAL = argv.PING_INTERVAL || process.env.PING_INTERVAL || 15000;
 const BOT_TOKEN = argv.BOT_TOKEN || process.env.BOT_TOKEN || '';
 const OPT_IP = process.env.IP || process.env.OPENSHIFT_NODEJS_IP;
+const MIN_VER = argv.MIN_VER || process.env.MIN_VER;
 
 if ('help' in argv) {
   logger.info(colors.bold.blue('Example: '));
@@ -71,6 +72,7 @@ const server = new ETTServer({
   mongoDBURL: MONGODB_URI,
   mongoDBName: DB_NAME,
   ip: OPT_IP,
+  minettpcver: MIN_VER,
   discord: { botToken: BOT_TOKEN }
 });
 

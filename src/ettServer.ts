@@ -77,6 +77,7 @@ export interface ETTParams {
   serverName: string | null;
   pingInterval: number | null;
   pingCountToDisconnect: number | null;
+  minettpcver: number | null;
   discord:
     | {
         guildId: string;
@@ -121,6 +122,8 @@ export class ETTServer {
 
   serverName: string;
 
+  minettpcver: number;
+
   accountList: { user: string; pass: string }[];
 
   mongoDBURL: string;
@@ -159,6 +162,7 @@ export class ETTServer {
     this.mongoDBURL = params.mongoDBURL || '';
     this.mongoDBName = params.mongoDBName || 'ettmulti';
     this.serverName = params.serverName || 'nodeMultiEtt';
+    this.minettpcver = params.minettpcver || -1;
     this.allowAccountCreation = params.allowAccountCreation || false;
     this.pingInterval = params.pingInterval || 15000;
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
@@ -739,6 +743,15 @@ ent: ${str}`);
   }
 
   onLogin(player: Player, message: LoginMsg) {
+    if (player.ettpcver < this.minettpcver) {
+      player.send(
+        makeMessage('login', {
+          logged: false,
+          msg: 'Your client is out of date. Please update'
+        })
+      );
+      return;
+    }
     if (!message.user || !message.pass) {
       player.send(
         makeMessage('login', {
