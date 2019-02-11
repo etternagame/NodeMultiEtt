@@ -162,10 +162,10 @@ export const ETTPMsgGuards = {
     );
   },
   enterroom: function(msg: any): msg is EnterRoomMsg {
-    return msg !== undefined && msg !== null && typeof msg.title == 'string';
+    return msg !== undefined && msg !== null && typeof msg.name == 'string';
   },
   createroom: function(msg: any): msg is CreateRoomMsg {
-    return msg !== undefined && msg !== null && typeof msg.title == 'string';
+    return msg !== undefined && msg !== null && typeof msg.name == 'string';
   },
   gameplayupdate: function(msg: any): msg is GameplayUpdateMsg {
     return msg !== undefined;
