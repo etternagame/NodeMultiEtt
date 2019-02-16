@@ -633,7 +633,7 @@ ent: ${str}`);
         const handler = this.messageHandlers[msgtype];
         const payload = message.payload;
         const guard = ETTPMsgGuards[msgtype];
-        if (guard && guard(payload)) {
+        if (guard && handler && guard(payload)) {
           (<ETTPMsgHandler<typeof payload>>handler).call(this, ws.player, payload);
         } else {
           logger.error(`Unknown ETTP msg type: ${msgtype}`);

@@ -42,6 +42,8 @@ export class Room {
 
   state: number;
 
+  commonPacksCached: string[] | null;
+
   selectionMode: number;
 
   owner: Player;
@@ -77,6 +79,7 @@ export class Room {
     this.playing = false;
     this.timerInterval = 0;
     this.timerLimit = 0;
+    this.commonPacksCached = null;
     this.updateStatus();
   }
 
@@ -229,10 +232,19 @@ export class Room {
   }
 
   commonPacks() {
-    const packArrays = this.players.map(p => p.packs).shift();
+    if (this.commonPacksCached !== null) return this.commonPacksCached;
+    const packArrays = this.players.map(p => p.packs);
+    // If called with an empty array reduce errors
+    const smallest =
+      packArrays.length > 0
+        ? packArrays.reduce((prev, curr) => {
+            return prev.length > curr.length ? curr : prev;
+          })
+        : null;
     let result: string[] | null = null;
-    if (packArrays)
-      result = packArrays.reduce<string[]>((res, v) => {
+    if (smallest)
+      result = smallest.reduce<string[]>((res, v) => {
+        // If the element isnt already in result and is in every pack
         if (
           res.indexOf(v) === -1 &&
           packArrays.every(a => {
@@ -242,7 +254,8 @@ export class Room {
           res.push(v);
         return res;
       }, []);
-    return result || [];
+    this.commonPacksCached = result || [];
+    return this.commonPacksCached;
   }
 
   onGameplayUpdate() {
@@ -264,11 +277,19 @@ export class Room {
     this.send(makeMessage('selectchart', { chart: this.serializeChart() }));
     this.sendChat(
       `${systemPrepend}${player.user} selected ${colorize(
-        `${message.title} (${message.difficulty}: ${message.meter}) ${message.pack ? `[${message.pack}]`: ``} ${
-          message.rate ? ` ${parseFloat((message.rate / 1000).toFixed(2))}` : ''
-        }`,
+        `${message.title} (${message.difficulty}: ${message.meter}) ${
+          message.pack ? `[${message.pack}]` : ``
+        } ${message.rate ? ` ${parseFloat((message.rate / 1000).toFixed(2))}` : ''}`,
         stringToColour(message.title)
       )}`
+    );
+  }
+
+  refreshPackList() {
+    this.send(
+      makeMessage('packlist', {
+        commonpacks: this.commonPacks()
+      })
     );
   }
 
@@ -285,6 +306,8 @@ export class Room {
   }
 
   enter(player: Player) {
+    this.commonPacksCached = null;
+
     player.room = this;
 
     this.players.push(player);
@@ -302,6 +325,7 @@ export class Room {
       );
 
     this.refreshUserList();
+    this.refreshPackList();
   }
 
   serialize(): SerializedRoom {
@@ -351,7 +375,7 @@ export class Room {
       const operatorPlayers = this.players.filter(p =>
         this.ops.find(opUsername => opUsername === p.user)
       );
-      
+
       if (operatorPlayers.length > 0) {
         this.owner = operatorPlayers[Math.floor(Math.random() * operatorPlayers.length)];
       }
@@ -388,6 +412,9 @@ export class Room {
 
   remove(player: Player) {
     this.players = this.players.filter(x => x.user !== player.user);
+    this.commonPacksCached = null;
+    this.refreshUserList();
+    this.refreshPackList();
   }
 
   toggleFreeMode(player: Player) {

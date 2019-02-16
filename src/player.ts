@@ -99,11 +99,13 @@ export class Player {
     if (this.readystate === true) {
       this.readystate = false;
       if (this.room !== null) {
+        this.room.refreshUserList();
         this.room.sendChat(`${systemPrepend} ${this.user} is not ready.`);
       }
     } else {
       this.readystate = true;
       if (this.room !== null) {
+        this.room.refreshUserList();
         this.room.sendChat(`${systemPrepend} ${this.user} is ready.`);
       }
     }
