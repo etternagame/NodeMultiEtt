@@ -162,7 +162,7 @@ export class ETTServer {
     this.mongoDBURL = params.mongoDBURL || '';
     this.mongoDBName = params.mongoDBName || 'ettmulti';
     this.serverName = params.serverName || 'nodeMultiEtt';
-    this.minettpcver = params.minettpcver || -1;
+    this.minettpcver = params.minettpcver || 3;
     this.allowAccountCreation = params.allowAccountCreation || false;
     this.pingInterval = params.pingInterval || 15000;
     this.pingCountToDisconnect = params.pingCountToDisconnect || 2;
