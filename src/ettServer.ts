@@ -1147,8 +1147,9 @@ ent: ${str}`);
     if (!playerToSendTo) {
       player.sendPM(`${systemPrepend}Could not find user ${receptorName}`);
     } else {
-      playerToSendTo.sendChat(PRIVATE_MESSAGE, `${player.user}: ${msg}`, player.user);
-      player.sendChat(PRIVATE_MESSAGE, `${player.user}: ${msg}`, receptorName);
+      const actualMsg =  `${colorize(player.user, playerColor)}: ${msg}`;
+      playerToSendTo.sendChat(PRIVATE_MESSAGE, actualMsg, player.user);
+      player.sendChat(PRIVATE_MESSAGE, actualMsg`, receptorName);
     }
   }
 }
