@@ -216,7 +216,7 @@ export class ETTServer {
     this.playerList = [];
 
     // Setup Discord Bot
-    this.discordChannelId = params.discord.channelId || '429399431725580288';
+    this.discordChannelId = params.discord.channelId || '555573656244322351';
     this.discordGuildId = params.discord.guildId || '339597420239519755';
     this.discordBotToken = params.discord.botToken;
     this.useDiscord = !!(this.discordChannelId && this.discordGuildId && this.discordBotToken);
