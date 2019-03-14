@@ -1149,7 +1149,7 @@ ent: ${str}`);
     } else {
       const actualMsg =  `${colorize(player.user, playerColor)}: ${msg}`;
       playerToSendTo.sendChat(PRIVATE_MESSAGE, actualMsg, player.user);
-      player.sendChat(PRIVATE_MESSAGE, actualMsg`, receptorName);
+      player.sendChat(PRIVATE_MESSAGE, actualMsg, receptorName);
     }
   }
 }
