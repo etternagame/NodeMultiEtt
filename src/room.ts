@@ -72,7 +72,7 @@ export class Room {
     this.free = false; // Free decides if only the owner can select charts
     this.countdown = false; // No countdown before song start
     this.countdownStarted = false;
-    this.selectionMode = 0; // By metadata(0), filehash(1) or chartkey(2)
+    this.selectionMode = 0; // By filehash+metatadata(2), filehash+metatadata+diff(1) or chartkey(1)
     this.state = SELECTING;
     this.chart = null;
     this.freerate = false; // Free rate decides if only the owner can select the chart rate
