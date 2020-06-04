@@ -438,11 +438,11 @@ export class ETTServer {
     player.room = null;
   }
 
-  createAccount(player: Player) {
+  createAccount(player: Player, hash: string) {
     if (this.db) {
       this.db
         .collection('accounts')
-        .insertOne({ user: player.user, pass: player.pass }, (err, records) => {
+        .insertOne({ user: player.user, pass: hash }, (err, records) => {
           if (err) {
             logger.error(
               `Failed mongodb insertion: ${err.name} : ${err.message} (For ${player.user})`
@@ -526,6 +526,14 @@ export class ETTServer {
   findUser(username: string) {
     const lowerUsername = username.toLowerCase();
     return this.playerList.find(x => x.user.toLowerCase() === lowerUsername);
+  }
+
+  async findUserInDb(username: string): Promise<Player | null> {
+    if (this.db != null) {
+      return this.db.collection('accounts').findOne<Player>({ user: username });
+    }
+
+    return null;
   }
 
   loadAccounts() {
@@ -770,7 +778,7 @@ ent: ${str}`);
     else player.packs = [];
   }
 
-  onLogin(player: Player, message: LoginMsg) {
+  async onLogin(player: Player, message: LoginMsg) {
     if (player.ettpcver < this.minettpcver) {
       player.send(
         makeMessage('login', {
@@ -841,13 +849,12 @@ ent: ${str}`);
     if (!this.mongoDBURL) {
       this.EOLogin(player, message);
     } else {
-      const foundUser = this.findUser(message.user);
+      const foundUser = await this.findUserInDb(message.user);
 
       if (foundUser) {
         bcrypt.compare(message.pass, foundUser.pass).then((res: boolean) => {
           if (res === true) {
             player.user = message.user;
-            player.pass = message.pass;
             player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
             player.send(makeMessage('login', { logged: true, msg: '' }));
             this.sendLobbyList(player);
@@ -865,8 +872,7 @@ ent: ${str}`);
         // New account
         player.user = message.user;
         bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
-          player.pass = hash;
-          this.createAccount(player);
+          this.createAccount(player, hash);
           player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
           this.sendLobbyList(player);
@@ -888,7 +894,6 @@ ent: ${str}`);
         if (response && response.statusCode === 200) {
           if (JSON.parse(body).success === 'Valid') {
             player.user = user;
-            player.pass = pass;
 
             player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
             player.send(makeMessage('login', { logged: true, msg: '' }));
