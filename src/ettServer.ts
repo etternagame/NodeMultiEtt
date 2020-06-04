@@ -630,7 +630,15 @@ ent: ${str}`);
         }
 
         // TODO: Validate json input here before casting?
-        const message: ETTPIncomingMsg = JSON.parse(strMessage);
+        let message: ETTPIncomingMsg;
+        try {
+          message = JSON.parse(strMessage);
+        } catch (e) {
+          logger.error('Could not JSON parse message string');
+
+          return;
+        }
+
         const msgtype = message.type;
         const handler = this.messageHandlers[msgtype];
         const payload = message.payload;
