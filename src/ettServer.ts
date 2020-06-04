@@ -282,7 +282,7 @@ export class ETTServer {
         const helpMessage = `Commands:\n
         /free - Enable free mode allows anyone to choose a chart (Privileged)\n
         /freerate - Enable free rate allowing people to play any rate the want (Privileged)\n
-        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n 
+        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n
         /countdown - Enable a countdown before starting the chart (Privileged)\n
         /stop - Stop the current countdown (Privileged)\n
         /shrug - Our favorite little emoji\n
@@ -550,7 +550,9 @@ export class ETTServer {
             this.accountList.push(account);
           },
           error => {
-            logger.error(error);
+            if (error != null) {
+              logger.error(error);
+            }
           }
         );
         this.db
