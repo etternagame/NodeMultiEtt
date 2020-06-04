@@ -625,18 +625,36 @@ ent: ${str}`);
       });
 
       ws.on('message', (strMessage: string) => {
-        if (this.logPackets) {
-          logger.debug(`in: ${strMessage}`);
-        }
-
         // TODO: Validate json input here before casting?
         let message: ETTPIncomingMsg;
         try {
           message = JSON.parse(strMessage);
         } catch (e) {
-          logger.error('Could not JSON parse message string');
+          // Do not potentially log plaintext passwords
+          if (strMessage.includes('pass')) {
+            logger.error('Could not JSON parse message string');
+          } else {
+            logger.error(`Could not JSON parse message string: ${strMessage}`);
+          }
 
           return;
+        }
+
+        if (this.logPackets) {
+          // Do not log plaintext passwords
+          if (message.type === 'login') {
+            const msg = JSON.stringify({
+              ...message,
+              payload: {
+                ...message.payload,
+                pass: ''
+              }
+            });
+
+            logger.debug(`in: ${msg}`);
+          } else {
+            logger.debug(`in: ${strMessage}`);
+          }
         }
 
         const msgtype = message.type;
