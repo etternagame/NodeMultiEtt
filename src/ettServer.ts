@@ -32,7 +32,6 @@ import {
   ETTPIncomingMsg,
   ETTPMsgHandler
 } from './messages';
-import { Int32 } from 'bson';
 
 // Bcrypt default salt rounds
 const saltRounds = 10;
@@ -124,8 +123,6 @@ export class ETTServer {
 
   minettpcver: number;
 
-  accountList: { user: string; pass: string }[];
-
   mongoDBURL: string;
 
   pingInterval: number;
@@ -211,7 +208,6 @@ export class ETTServer {
     this.wss = new SocketServer({ server: this.server });
 
     // init member variables
-    this.accountList = [];
     this.currentRooms = [];
     this.playerList = [];
 
@@ -553,16 +549,6 @@ export class ETTServer {
         collection.createIndex({ user: 'text' }, { unique: true, name: 'username' });
         // Both the collection and index are created if they dont exist (idempotent operations)
 
-        collection.find().forEach(
-          (account: { user: string; pass: string }) => {
-            this.accountList.push(account);
-          },
-          error => {
-            if (error != null) {
-              logger.error(error);
-            }
-          }
-        );
         this.db
           .collection<{ [key: string]: [string] }>('globalPermissions')
           .find()
