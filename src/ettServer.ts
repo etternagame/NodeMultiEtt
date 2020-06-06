@@ -32,7 +32,6 @@ import {
   ETTPIncomingMsg,
   ETTPMsgHandler
 } from './messages';
-import { Int32 } from 'bson';
 
 // Bcrypt default salt rounds
 const saltRounds = 10;
@@ -124,8 +123,6 @@ export class ETTServer {
 
   minettpcver: number;
 
-  accountList: { user: string; pass: string }[];
-
   mongoDBURL: string;
 
   pingInterval: number;
@@ -211,7 +208,6 @@ export class ETTServer {
     this.wss = new SocketServer({ server: this.server });
 
     // init member variables
-    this.accountList = [];
     this.currentRooms = [];
     this.playerList = [];
 
@@ -282,7 +278,7 @@ export class ETTServer {
         const helpMessage = `Commands:\n
         /free - Enable free mode allows anyone to choose a chart (Privileged)\n
         /freerate - Enable free rate allowing people to play any rate the want (Privileged)\n
-        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n 
+        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n
         /countdown - Enable a countdown before starting the chart (Privileged)\n
         /stop - Stop the current countdown (Privileged)\n
         /shrug - Our favorite little emoji\n
@@ -438,11 +434,11 @@ export class ETTServer {
     player.room = null;
   }
 
-  createAccount(player: Player) {
+  createAccount(player: Player, hash: string) {
     if (this.db) {
       this.db
         .collection('accounts')
-        .insertOne({ user: player.user, pass: player.pass }, (err, records) => {
+        .insertOne({ user: player.user, pass: hash }, (err, records) => {
           if (err) {
             logger.error(
               `Failed mongodb insertion: ${err.name} : ${err.message} (For ${player.user})`
@@ -528,6 +524,14 @@ export class ETTServer {
     return this.playerList.find(x => x.user.toLowerCase() === lowerUsername);
   }
 
+  async findUserInDb(username: string): Promise<Player | null> {
+    if (this.db != null) {
+      return this.db.collection('accounts').findOne<Player>({ user: username });
+    }
+
+    return null;
+  }
+
   loadAccounts() {
     mongodbD.MongoClient.connect(
       this.mongoDBURL,
@@ -545,14 +549,6 @@ export class ETTServer {
         collection.createIndex({ user: 'text' }, { unique: true, name: 'username' });
         // Both the collection and index are created if they dont exist (idempotent operations)
 
-        collection.find().forEach(
-          (account: { user: string; pass: string }) => {
-            this.accountList.push(account);
-          },
-          error => {
-            logger.error(error);
-          }
-        );
         this.db
           .collection<{ [key: string]: [string] }>('globalPermissions')
           .find()
@@ -623,12 +619,38 @@ ent: ${str}`);
       });
 
       ws.on('message', (strMessage: string) => {
-        if (this.logPackets) {
-          logger.debug(`in: ${strMessage}`);
+        // TODO: Validate json input here before casting?
+        let message: ETTPIncomingMsg;
+        try {
+          message = JSON.parse(strMessage);
+        } catch (e) {
+          // Do not potentially log plaintext passwords
+          if (strMessage.includes('pass')) {
+            logger.error('Could not JSON parse message string');
+          } else {
+            logger.error(`Could not JSON parse message string: ${strMessage}`);
+          }
+
+          return;
         }
 
-        // TODO: Validate json input here before casting?
-        const message: ETTPIncomingMsg = JSON.parse(strMessage);
+        if (this.logPackets) {
+          // Do not log plaintext passwords
+          if (message.type === 'login') {
+            const msg = JSON.stringify({
+              ...message,
+              payload: {
+                ...message.payload,
+                pass: ''
+              }
+            });
+
+            logger.debug(`in: ${msg}`);
+          } else {
+            logger.debug(`in: ${strMessage}`);
+          }
+        }
+
         const msgtype = message.type;
         const handler = this.messageHandlers[msgtype];
         const payload = message.payload;
@@ -742,7 +764,7 @@ ent: ${str}`);
     else player.packs = [];
   }
 
-  onLogin(player: Player, message: LoginMsg) {
+  async onLogin(player: Player, message: LoginMsg) {
     if (player.ettpcver < this.minettpcver) {
       player.send(
         makeMessage('login', {
@@ -813,13 +835,12 @@ ent: ${str}`);
     if (!this.mongoDBURL) {
       this.EOLogin(player, message);
     } else {
-      const foundUser = this.findUser(message.user);
+      const foundUser = await this.findUserInDb(message.user);
 
       if (foundUser) {
         bcrypt.compare(message.pass, foundUser.pass).then((res: boolean) => {
           if (res === true) {
             player.user = message.user;
-            player.pass = message.pass;
             player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
             player.send(makeMessage('login', { logged: true, msg: '' }));
             this.sendLobbyList(player);
@@ -837,8 +858,7 @@ ent: ${str}`);
         // New account
         player.user = message.user;
         bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
-          player.pass = hash;
-          this.createAccount(player);
+          this.createAccount(player, hash);
           player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
           this.sendLobbyList(player);
@@ -860,7 +880,6 @@ ent: ${str}`);
         if (response && response.statusCode === 200) {
           if (JSON.parse(body).success === 'Valid') {
             player.user = user;
-            player.pass = pass;
 
             player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
             player.send(makeMessage('login', { logged: true, msg: '' }));

@@ -98,7 +98,7 @@ export interface ETTPMsgHandlers {
 }
 export const ETTPMsgGuards = {
   hello: function(msg: any): msg is HelloMsg {
-    return true;
+    return msg != null;
   },
   startingchart: function(msg: any): msg is StartingChartMsg {
     return true;
@@ -140,35 +140,33 @@ export const ETTPMsgGuards = {
     return true;
   },
   startchart: function(msg: any): msg is ChartMsg {
-    return msg !== undefined && msg !== null && typeof msg.title == 'string';
+    return msg != null && typeof msg.title == 'string';
   },
   selectchart: function(msg: any): msg is ChartMsg {
-    return msg !== undefined && msg !== null && typeof msg.title == 'string';
+    return msg != null && typeof msg.title == 'string';
   },
   chat: function(msg: any): msg is ChatMsg {
     return (
-      msg !== undefined &&
-      msg !== null &&
+      msg != null &&
       typeof msg.msgtype == 'number' &&
       typeof msg.msg == 'string'
     );
   },
   login: function(msg: any): msg is LoginMsg {
     return (
-      msg !== undefined &&
-      msg !== null &&
+      msg != null &&
       typeof msg.user == 'string' &&
       typeof msg.pass == 'string'
     );
   },
   enterroom: function(msg: any): msg is EnterRoomMsg {
-    return msg !== undefined && msg !== null && typeof msg.name == 'string';
+    return msg != null && typeof msg.name == 'string';
   },
   createroom: function(msg: any): msg is CreateRoomMsg {
-    return msg !== undefined && msg !== null && typeof msg.name == 'string';
+    return msg != null && typeof msg.name == 'string';
   },
   gameplayupdate: function(msg: any): msg is GameplayUpdateMsg {
-    return msg !== undefined;
+    return msg != null;
   }
 };
 
