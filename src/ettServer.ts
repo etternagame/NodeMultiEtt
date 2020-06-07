@@ -36,6 +36,8 @@ import {
 // Bcrypt default salt rounds
 const saltRounds = 10;
 
+const CLIENT_DATA_KEY = '4406B28A97B326DA5346A9885B0C9DEE8D66F89B562CF5E337AC04C17EB95C40';
+
 const logger = createLogger({
   format: format.simple(),
   transports: [new transports.Console()]
@@ -78,12 +80,12 @@ export interface ETTParams {
   pingCountToDisconnect: number | null;
   minettpcver: number | null;
   discord:
-    | {
-        guildId: string;
-        channelId: string;
-        botToken: string;
-      }
-    | any;
+  | {
+    guildId: string;
+    channelId: string;
+    botToken: string;
+  }
+  | any;
 }
 
 export class ETTServer {
@@ -240,7 +242,7 @@ export class ETTServer {
           client.player.sendChat(
             LOBBY_MESSAGE,
             `${colorize('Discord')} (${colorize(msg.author.username, playerColor)}): ${
-              msg.cleanContent
+            msg.cleanContent
             }`
           );
         });
@@ -316,7 +318,7 @@ export class ETTServer {
           player.sendChat(
             ROOM_MESSAGE,
             `${systemPrepend}${
-              player.user
+            player.user
             }, you're not the room owner so you cannot change the description`,
             room.name
           );
@@ -332,7 +334,7 @@ export class ETTServer {
           player.sendChat(
             ROOM_MESSAGE,
             `${systemPrepend}${
-              player.user
+            player.user
             }, you're not the room owner so you cannot change the title`,
             room.name
           );
@@ -348,7 +350,7 @@ export class ETTServer {
           player.sendChat(
             ROOM_MESSAGE,
             `${systemPrepend}${
-              player.user
+            player.user
             }, you're not the room owner so you cannot change the password`,
             room.name
           );
@@ -369,7 +371,7 @@ export class ETTServer {
             player.sendChat(
               ROOM_MESSAGE,
               `${systemPrepend}${player.user},  you have insufficient rights to kick ${
-                playerToKick.user
+              playerToKick.user
               }`,
               room.name
             );
@@ -378,7 +380,7 @@ export class ETTServer {
           player.sendChat(
             ROOM_MESSAGE,
             `${systemPrepend}${
-              player.user
+            player.user
             }, you're not the room owner so you cannot change the password`,
             room.name
           );
@@ -873,21 +875,19 @@ ent: ${str}`);
   EOLogin(player: Player, { user, pass }: LoginMsg) {
     request.post(
       {
-        url: 'https://api.etternaonline.com/v1/login',
-        form: { username: user, password: pass }
+        url: 'https://api.etternaonline.com/v2/login',
+        form: { username: user, password: pass, clientData: CLIENT_DATA_KEY }
       },
       (error: any, response: { statusCode: number }, body: string) => {
         if (response && response.statusCode === 200) {
-          if (JSON.parse(body).success === 'Valid') {
-            player.user = user;
+          player.user = user;
 
-            player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
-            player.send(makeMessage('login', { logged: true, msg: '' }));
-            this.sendLobbyList(player);
-            this.addPlayerInLobbyLists(player);
+          player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+          player.send(makeMessage('login', { logged: true, msg: '' }));
+          this.sendLobbyList(player);
+          this.addPlayerInLobbyLists(player);
 
-            return;
-          }
+          return;
         }
 
         player.send(
@@ -907,7 +907,7 @@ ent: ${str}`);
     this.leaveRoom(player);
   }
 
-  static onHasChart() {}
+  static onHasChart() { }
 
   onStartingChart(player: Player) {
     player.state = PLAYING;
@@ -1166,7 +1166,7 @@ ent: ${str}`);
     if (!playerToSendTo) {
       player.sendPM(`${systemPrepend}Could not find user ${receptorName}`);
     } else {
-      const actualMsg =  `${colorize(player.user, playerColor)}: ${msg}`;
+      const actualMsg = `${colorize(player.user, playerColor)}: ${msg}`;
       playerToSendTo.sendChat(PRIVATE_MESSAGE, actualMsg, player.user);
       player.sendChat(PRIVATE_MESSAGE, actualMsg, receptorName);
     }
