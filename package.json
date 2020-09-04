@@ -27,7 +27,7 @@
     "dotenv": "^6.2.0",
     "express": "^4.16.2",
     "minimist": "^1.2.3",
-    "mongodb": "^3.0.4",
+    "mongodb": "^3.1.13",
     "request": "^2.85.0",
     "uws": "10.148.1",
     "winston": "^3.1.0",
