@@ -1,8 +1,18 @@
 # NodeMultiEtt
 
-Example server for the new websocket protocol/client in etterna (currently working in https://github.com/Nickito12/etterna/tree/uws) using json for packets/messages.
+Example server for the new websocket protocol/client in Etterna (currently working in https://github.com/Nickito12/etterna/tree/uws) using json for packets/messages.
 
-## JSON messages
+## Building and Using
+
+TypeScript files are used to output the JavaScript server files. Run `tsc start.ts --outDir built/` to generate the JS files.
+
+For easy control, run the server using `pm2` like so: `pm2 start built/start.js --name multi`
+
+To connect to your local server, disconnect from EO (from network options) and then connect to `127.0.0.1`. (Normal server is `multi.etternaonline.com`)
+
+After changing code, recompile the TypeScript and restart the server: `tsc --outDir built/ & pm2 restart multi`
+
+## JSON Messages
 
 This follows a modified version of flux standard actions (https://github.com/redux-utilities/flux-standard-action#actions)
 
