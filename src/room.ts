@@ -446,19 +446,17 @@ export class Room {
       if (!selectionMode) {
         player.sendChat(
           1,
-          `${systemPrepend}Invalid selection mode. Valid ones are:
-              ${JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
+          `${systemPrepend}Invalid selection mode, ${player.user}. Valid ones are: ${JSON.stringify(
+            selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
           this.name
         );
+      } else {
+        this.selectionMode = +params[0];
+        this.sendChat(
+          `${systemPrepend}The room is now in "${ selectionModeDescriptions[+params[0]]
+          }" selection mode.`
+        );
       }
-
-      this.selectionMode = +params[0];
-
-      this.sendChat(
-        `${systemPrepend}The room is now in "${
-          selectionModeDescriptions[+params[0]]
-        }" selection mode`
-      );
     } else {
       unauthorizedChat(player);
     }
