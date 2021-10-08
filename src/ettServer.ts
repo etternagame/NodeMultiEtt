@@ -322,48 +322,45 @@ export class ETTServer {
         if (room.isOwner(player)) {
           room.desc = desc;
           this.updateRoom(room);
-          room.sendChat('');
-          room.sendChat(`${systemPrepend}${player.user} changed the room description to ${desc}`);
+          if (desc) {
+            room.sendChat(`${systemPrepend}${player.user} changed the room description to ${desc}.`);
+          } else {
+            room.sendChat(`${systemPrepend}${player.user} removed the room description.`);
+          }
         } else {
-          player.sendChat(
-            ROOM_MESSAGE,
-            `${systemPrepend}${
-            player.user
-            }, you're not the room owner so you cannot change the description`,
-            room.name
-          );
+          room.sendChat(`${systemPrepend}${player.user} is not owner, cannot change the room description.`);
         }
       },
       title: (player: Player, room: Room, command: string, [title]: string[]) => {
-        if (room.isOwner(player)) {
+        if (room.isOwner(player) && title) {
           room.name = title;
           this.updateRoom(room);
-          room.sendChat('');
-          room.sendChat(`${systemPrepend}${player.user} renamed the room to ${title}`);
+          room.sendChat(`${systemPrepend}${player.user} renamed the room to ${title}.`);
+        } else if (room.isOwner(player) && !title) {
+          room.sendChat(`${systemPrepend}${player.user}, you didn't provide a room name.`);
         } else {
-          player.sendChat(
-            ROOM_MESSAGE,
-            `${systemPrepend}${
-            player.user
-            }, you're not the room owner so you cannot change the title`,
-            room.name
-          );
+          room.sendChat(`${systemPrepend}${player.user} is not owner, cannot change the room name.`);
         }
       },
       pass: (player: Player, room: Room, command: string, [pass]: string[]) => {
-        if (room.isOwner(player)) {
+        if (room.isOwner(player) && pass) {
+          if (room.pass != "") {
+            room.sendChat(`${systemPrepend}${player.user} changed the room password.`);
+          } else {
+            room.sendChat(`${systemPrepend}${player.user} enabled a room password.`);
+          }
           room.pass = pass;
           this.updateRoom(room);
-          room.sendChat('');
-          room.sendChat(`${systemPrepend}${player.user} changed the room password`);
+        } else if (room.isOwner(player) && !pass) {
+          if (room.pass != "") {
+            room.sendChat(`${systemPrepend}${player.user} removed the room password.`);
+          } else {
+            room.sendChat(`${systemPrepend}${player.user}, room already has no password.`);
+          }
+          room.pass = "";
+          this.updateRoom(room);
         } else {
-          player.sendChat(
-            ROOM_MESSAGE,
-            `${systemPrepend}${
-            player.user
-            }, you're not the room owner so you cannot change the password`,
-            room.name
-          );
+          room.sendChat(`${systemPrepend}${player.user} is not owner, cannot change the room password.`);
         }
       },
       kick: (player: Player, room: Room, command: string, [user]: string[]) => {
@@ -378,22 +375,10 @@ export class ETTServer {
             playerToKick.send(makeMessage('kicked'));
             this.leaveRoom(playerToKick);
           } else {
-            player.sendChat(
-              ROOM_MESSAGE,
-              `${systemPrepend}${player.user},  you have insufficient rights to kick ${
-              playerToKick.user
-              }`,
-              room.name
-            );
+            room.sendChat(`${systemPrepend}${player.user} is not privileged, cannot kick ${ playerToKick.user }.`);
           }
         } else {
-          player.sendChat(
-            ROOM_MESSAGE,
-            `${systemPrepend}${
-            player.user
-            }, you're not the room owner so you cannot change the password`,
-            room.name
-          );
+          room.sendChat(`${systemPrepend}Player ${user} is not in lobby, cannot be kicked`);
         }
       },
       force: (player: Player, room: Room) => {
