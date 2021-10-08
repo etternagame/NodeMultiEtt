@@ -8,6 +8,7 @@ import {
   selectionModeDescriptions,
   selectionModes,
   stringToColour,
+  systemColor,
   systemPrepend,
   unauthorizedChat
 } from './utils';
@@ -192,7 +193,7 @@ export class Room {
         this.state = INGAME;
 
         this.send(makeMessage('startchart', { chart: newChart }));
-        this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
+        this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title, systemColor)}`);
 
         this.playing = true;
       });
@@ -225,7 +226,7 @@ export class Room {
       this.state = INGAME;
 
       this.send(makeMessage('startchart', { chart: newChart }));
-      this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
+      this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title, systemColor)}`);
 
       this.playing = true;
     }
@@ -280,7 +281,7 @@ export class Room {
         `${message.title} (${message.difficulty}: ${message.meter}) ${
           message.pack ? `[${message.pack}]` : ``
         } ${message.rate ? ` ${parseFloat((message.rate / 1000).toFixed(2))}` : ''}`,
-        stringToColour(message.title)
+        systemColor
       )}`
     );
   }

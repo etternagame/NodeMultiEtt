@@ -33,23 +33,6 @@ export function color(c: string) {
   return `|c0${c}`;
 }
 
-export const systemPrepend = `${color('BBBBFF')}System:${color('FFFFFF')} `;
-export const ownerColor = 'BBFFBB';
-export const playerColor = 'AAFFFF';
-export const opColor = 'FFBBBB';
-
-export function unauthorizedChat(player: Player, operator: boolean = false) {
-  if (!player.room) {
-    // TODO
-    // The player is not in a room, but managed to instance a room command - idk how you
-    // would want to deal with this.
-  } else if (operator) {
-    player.sendChat(1, `${systemPrepend}You are not room owner or operator.`, player.room.name);
-  } else {
-    player.sendChat(1, `${systemPrepend}You are not room owner`, player.room.name);
-  }
-}
-
 export const stringToColour = function(str: string) {
   let hash = 0;
 
@@ -70,4 +53,22 @@ export const stringToColour = function(str: string) {
 
 export function colorize(string: string, colour = stringToColour(string)) {
   return color(colour) + string + color('FFFFFF');
+}
+
+export const ownerColor = 'BBFFBB';
+export const playerColor = 'AAFFFF';
+export const opColor = 'FFBBBB';
+export const systemColor = 'BBBBFF';
+export const systemPrepend = colorize('System:',systemColor) + " ";
+
+export function unauthorizedChat(player: Player, operator: boolean = false) {
+  if (!player.room) {
+    // TODO
+    // The player is not in a room, but managed to instance a room command - idk how you
+    // would want to deal with this.
+  } else if (operator) {
+    player.sendChat(1, `${systemPrepend}You are not room owner or operator.`, player.room.name);
+  } else {
+    player.sendChat(1, `${systemPrepend}You are not room owner`, player.room.name);
+  }
 }
