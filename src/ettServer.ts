@@ -291,7 +291,7 @@ export class ETTServer {
         ${colorize('/force',opColor)} - Ignore players not being readied up
         ${colorize('/countdown',opColor)} - Enable a countdown before starting the chart
         ${colorize('/stop',opColor)} - Stop the current countdown
-        ${colorize('/op',opColor)} - Make a player an operator, giving them access to privileged commands
+        ${colorize('/op',opColor)} - Give a player ${colorize('Operator',opColor)} privileges
         ${colorize('/kick',opColor)} - Kick a player
         ${colorize('/selectionmode',opColor)} - Change what determines a unique song
         ${colorize('/title',ownerColor)} - Change the room's title
