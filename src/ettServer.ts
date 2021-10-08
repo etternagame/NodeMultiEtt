@@ -10,7 +10,7 @@ import { Player, OPTIONS, READY, PLAYING, EVAL } from './player';
 
 import { Room, SerializedRoom } from './room';
 
-import { colorize, opColor, ownerColor, playerColor, systemPrepend } from './utils';
+import { colorize, opColor, ownerColor, playerColor, systemColor, systemPrepend } from './utils';
 
 import {
   ETTPMsgGuards,
@@ -270,17 +270,34 @@ export class ETTServer {
         });
       },
       help: (player: Player) => {
-        const helpMessage = `Commands:\n
-        /free - Enable free mode allows anyone to choose a chart (Privileged)\n
-        /freerate - Enable free rate allowing people to play any rate the want (Privileged)\n
-        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n
-        /countdown - Enable a countdown before starting the chart (Privileged)\n
-        /stop - Stop the current countdown (Privileged)\n
-        /shrug - Our favorite little emoji\n
-        /roll - Roll a random number, you can specify a limit i.e. roll 1442\n
-        /help - This command right here!`;
-        // We send each line separetely because the client chatbox gets fucky with newlines in msgs
-        helpMessage.split('\n').forEach(l => player.sendChat(PRIVATE_MESSAGE, l));
+        const helpMessage = `${colorize('Commands:',systemColor)} ${colorize('(Privileged)',opColor)}
+        ${colorize('/roll',systemColor)} - Roll a random number, you can specify a limit i.e. roll 1442
+        ${colorize('/shrug',systemColor)} - Our favorite little emoji
+        ${colorize('/commonpacks',systemColor)} - Show a list of common packs between players
+        ${colorize('/ready',systemColor)} - Ready up
+        ${colorize('/ophelp',systemColor)} - Show all ${colorize('privileged commands',opColor)}
+        ${colorize('/free',opColor)} - Free mode allows anyone to choose a chart
+        ${colorize('/freerate',opColor)} - Free rate allows players to play any rate
+        ${colorize('/countdown',opColor)} - Enable a countdown before starting the chart
+        ${colorize('/stop',opColor)} - Stop the current countdown
+        ${colorize('/op',opColor)} - Give a player ${colorize('Operator',opColor)} privileges`;
+        //helpMessage.split('\n').forEach(l => player.sendChat(PRIVATE_MESSAGE, l));  //old
+        player.sendChat(PRIVATE_MESSAGE, helpMessage);
+      },
+      ophelp: (player: Player) => {
+        const ophelpMessage = `${colorize('Operator Commands:',opColor)} ${colorize('(Owner)',ownerColor)}
+        ${colorize('/free',opColor)} - Free mode allows anyone to choose a chart
+        ${colorize('/freerate',opColor)} - Free rate allows players to play any rate
+        ${colorize('/force',opColor)} - Ignore players not being readied up
+        ${colorize('/countdown',opColor)} - Enable a countdown before starting the chart
+        ${colorize('/stop',opColor)} - Stop the current countdown
+        ${colorize('/op',opColor)} - Make a player an operator, giving them access to privileged commands
+        ${colorize('/kick',opColor)} - Kick a player
+        ${colorize('/selectionmode',opColor)} - Change what determines a unique song
+        ${colorize('/title',ownerColor)} - Change the room's title
+        ${colorize('/desc',ownerColor)} - Change the room's description
+        ${colorize('/pass',ownerColor)} - Change the room's password`;
+        player.sendChat(PRIVATE_MESSAGE, ophelpMessage);
       },
       request: (player: Player, command: string, params: string[]) => {
         this.requestChart(player, params);
@@ -837,6 +854,7 @@ ent: ${str}`);
           if (res === true) {
             player.user = message.user;
             player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+            player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Enter ${colorize('/help',systemColor)} to see all commands.`);
             player.send(makeMessage('login', { logged: true, msg: '' }));
             this.sendLobbyList(player);
             this.addPlayerInLobbyLists(player);
@@ -855,6 +873,7 @@ ent: ${str}`);
         bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
           this.createAccount(player, hash);
           player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+          player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Enter ${colorize('/help',systemColor)} to see all commands.`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
           this.sendLobbyList(player);
           this.addPlayerInLobbyLists(player);
@@ -876,6 +895,7 @@ ent: ${str}`);
           player.user = user;
 
           player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+          player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Enter ${colorize('/help',systemColor)} to see all commands.`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
           this.sendLobbyList(player);
           this.addPlayerInLobbyLists(player);
