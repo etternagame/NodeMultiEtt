@@ -100,10 +100,10 @@ export class Room {
     if (this.isOperatorOrOwner(player)) {
       if (this.forcestart === true) {
         this.forcestart = false;
-        this.sendChat(`${systemPrepend} force start disabled.`);
+        this.sendChat(`${systemPrepend} Force start disabled.`);
       } else {
         this.forcestart = true;
-        this.sendChat(`${systemPrepend} force start enabled for this song.`);
+        this.sendChat(`${systemPrepend} Force start enabled for this song.`);
       }
     } else {
       unauthorizedChat(player, true);
@@ -150,7 +150,7 @@ export class Room {
 
     const selectionMode: (ch: Chart) => any = selectionModes[this.selectionMode];
     if (!selectionMode) {
-      this.sendChat(`${systemPrepend}Invalid selection mode`);
+      this.sendChat(`${systemPrepend}Invalid selection mode.`);
       return {};
     }
 
@@ -314,7 +314,7 @@ export class Room {
     this.players.push(player);
 
     player.send(makeMessage('enterroom', { entered: true }));
-    this.sendChat(`${systemPrepend}${player.user} joined`);
+    this.sendChat(`${systemPrepend}${player.user} joined.`);
 
     player.state = READY;
 
@@ -422,7 +422,7 @@ export class Room {
     if (this.isOperatorOrOwner(player)) {
       this.free = !this.free;
       this.sendChat(
-        `${systemPrepend}The room is now ${this.free ? '' : 'not '}in free song picking mode`
+        `${systemPrepend}The room is ${this.free ? 'now' : 'no longer'} in free song picking mode.`
       );
     } else {
       unauthorizedChat(player, true);
@@ -433,7 +433,7 @@ export class Room {
     if (this.isOperatorOrOwner(player)) {
       this.freerate = !this.freerate;
 
-      this.sendChat(`${systemPrepend}The room is now ${this.freerate ? '' : 'not'} rate free mode`);
+      this.sendChat(`${systemPrepend}The room is ${this.freerate ? 'now' : 'no longer'} in rate free mode.`);
     } else {
       unauthorizedChat(player, true);
     }
@@ -446,7 +446,7 @@ export class Room {
       if (!selectionMode) {
         player.sendChat(
           1,
-          `${systemPrepend}Invalid selection mode. Valid ones are:\n
+          `${systemPrepend}Invalid selection mode. Valid ones are:
               ${JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
           this.name
         );
@@ -483,10 +483,10 @@ export class Room {
 
       if (!this.ops.find(x => x === params[0])) {
         this.ops.push(params[0]);
-        this.sendChat(`${systemPrepend}${params[0]} is now a room operator`);
+        this.sendChat(`${systemPrepend}${params[0]} is now a room operator.`);
       } else {
         this.ops = this.ops.filter(x => x !== params[0]);
-        this.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
+        this.sendChat(`${systemPrepend}${params[0]} is no longer a room operator.`);
       }
     } else {
       unauthorizedChat(player);

@@ -69,6 +69,6 @@ export function unauthorizedChat(player: Player, operator: boolean = false) {
   } else if (operator) {
     player.sendChat(1, `${systemPrepend}You are not room owner or operator.`, player.room.name);
   } else {
-    player.sendChat(1, `${systemPrepend}You are not room owner`, player.room.name);
+    player.sendChat(1, `${systemPrepend}You are not room owner.`, player.room.name);
   }
 }

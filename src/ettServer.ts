@@ -312,7 +312,7 @@ export class ETTServer {
       },
       commonpacks: (player: Player, room: Room, command: string, params: string[]) => {
         const commonPacks = room.commonPacks();
-        if (commonPacks.length > 0) room.sendChat(`Common packs: ${commonPacks.join(',')}`);
+        if (commonPacks.length > 0) room.sendChat(`Common packs: ${commonPacks.join(', ')}`);
         else room.sendChat(`No pack in common between the players in the room :(`);
       },
       countdown: (player: Player, room: Room, command: string, params: string[]) => {
@@ -490,11 +490,11 @@ export class ETTServer {
       this.sendAll(makeMessage('deleteroom', { room: room.serialize() }));
     } else {
       // send notice to players in room that someone left
-      room.sendChat(`${systemPrepend}${player.user} left`);
+      room.sendChat(`${systemPrepend}${player.user} left.`);
       this.updateRoom(room);
     }
     player.send(makeMessage('leaveroom')); // So the client can exit the room when kicked
-    player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Left room ${room.name}`);
+    player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Left room ${room.name}.`);
   }
 
   resendAllRooms() {
@@ -587,8 +587,7 @@ export class ETTServer {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
           } else {
-            logger.debug(`Connection closed so msg not
-ent: ${str}`);
+            logger.debug(`Connection closed so msg not ent: ${str}`);
           }
         };
       }
@@ -724,7 +723,7 @@ ent: ${str}`);
 
   onStartChart(player: Player, message: ChartMsg) {
     if (!player.room) {
-      player.sendPM(`${systemPrepend}You're not in a room`);
+      player.sendPM(`${systemPrepend}You're not in a room.`);
       return;
     }
     if (!player.room.canSelect(player)) {
@@ -961,7 +960,7 @@ ent: ${str}`);
   static onMissingChart(player: Player) {
     if (!player.user || !player.room) return;
     if (player.room) {
-      player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
+      player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart.`);
     }
   }
 
@@ -971,7 +970,7 @@ ent: ${str}`);
     }
 
     if (!message.name) {
-      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Cannot use empty room name`);
+      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Cannot use empty room name.`);
       return;
     }
 
@@ -990,7 +989,7 @@ ent: ${str}`);
       player.readystate = false;
     } else {
       player.send(makeMessage('createroom', { created: false }));
-      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Room name already in use`);
+      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Room name already in use.`);
     }
   }
 
@@ -1013,7 +1012,7 @@ ent: ${str}`);
         this.enterRoom(player, room);
       } else {
         player.send(makeMessage('enterroom', { entered: false }));
-        player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Incorrect password`);
+        player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Incorrect password.`);
       }
     else {
       player.readystate = false;
@@ -1096,7 +1095,7 @@ ent: ${str}`);
         if (!player.room || player.room.name !== message.tab) {
           player.sendChat(
             ROOM_MESSAGE,
-            `${systemPrepend}You're not in the room ${message.tab}`,
+            `${systemPrepend}You're not in the room ${message.tab}.`,
             message.tab
           );
           return;
@@ -1141,7 +1140,7 @@ ent: ${str}`);
     if (!this.userHasPemission(player, 'chartRequesting')) {
       player.sendChat(
         PRIVATE_MESSAGE,
-        `${systemPrepend}You are not allowed to send chart requests. Contact a server admin`
+        `${systemPrepend}You are not allowed to send chart requests. Contact a server admin.`
       );
       return;
     }
