@@ -465,10 +465,9 @@ export class Room {
   roll(player: Player, command: string, params: string[]) {
     if (!Number.isNaN(parseInt(params[0], 10))) {
       const rolledNumber = Math.floor(Math.random() * parseInt(params[0], 10));
-
-      this.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
+      this.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber + 1} (max ${parseInt(params[0],10)}).`);
     } else {
-      this.sendChat(`${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 10)}`);
+      this.sendChat(`${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 100) + 1} (max 100).`);
     }
   }
 
