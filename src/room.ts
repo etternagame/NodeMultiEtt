@@ -278,9 +278,9 @@ export class Room {
     this.send(makeMessage('selectchart', { chart: this.serializeChart() }));
     this.sendChat(
       `${systemPrepend}${player.user} selected ${colorize(
-        `${message.title} (${message.difficulty}: ${message.meter}) ${
-          message.pack ? `[${message.pack}]` : ``
-        } ${message.rate ? ` ${parseFloat((message.rate / 1000).toFixed(2))}` : ''}`,
+        `${message.title} (${message.difficulty}) ${message.rate ? ` ${
+          parseFloat((message.rate / 1000).toFixed(2))}x` : ''} ${
+          message.pack ? `[${message.pack}]` : `` } `,
         systemColor
       )}`
     );
