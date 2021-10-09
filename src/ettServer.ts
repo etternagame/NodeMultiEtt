@@ -10,7 +10,7 @@ import { Player, OPTIONS, READY, PLAYING, EVAL } from './player';
 
 import { Room, SerializedRoom } from './room';
 
-import { colorize, opColor, ownerColor, playerColor, systemPrepend } from './utils';
+import { colorize, opColor, ownerColor, playerColor, systemColor, systemPrepend } from './utils';
 
 import {
   ETTPMsgGuards,
@@ -262,13 +262,6 @@ export class ETTServer {
           msgtype: msg.msgtype
         });
       },
-      lenny: (player: Player, command: string, params: string[], msg: ChatMsg) => {
-        this.onChat(player, {
-          msg: '( ͡° ͜ʖ ͡°)',
-          tab: msg.tab,
-          msgtype: msg.msgtype
-        });
-      },
       shrug: (player: Player, command: string, params: string[], msg: ChatMsg) => {
         this.onChat(player, {
           msg: '¯\\_(ツ)_/¯',
@@ -277,17 +270,34 @@ export class ETTServer {
         });
       },
       help: (player: Player) => {
-        const helpMessage = `Commands:\n
-        /free - Enable free mode allows anyone to choose a chart (Privileged)\n
-        /freerate - Enable free rate allowing people to play any rate the want (Privileged)\n
-        /op - Give a player operator privileges, gives them access to privileged commands (Privileged)\n
-        /countdown - Enable a countdown before starting the chart (Privileged)\n
-        /stop - Stop the current countdown (Privileged)\n
-        /shrug - Our favorite little emoji\n
-        /roll - Roll a random number, you can specify a limit i.e. roll 1442\n
-        /help - This command right here!`;
-        // We send each line separetely because the client chatbox gets fucky with newlines in msgs
-        helpMessage.split('\n').forEach(l => player.sendChat(PRIVATE_MESSAGE, l));
+        const helpMessage = `${colorize('Commands:',systemColor)} ${colorize('(Privileged)',opColor)}
+        ${colorize('/roll',systemColor)} - Roll a random number, you can specify a limit i.e. roll 1442
+        ${colorize('/shrug',systemColor)} - Our favorite little emoji
+        ${colorize('/commonpacks',systemColor)} - Show a list of common packs between players
+        ${colorize('/ready',systemColor)} - Ready up
+        ${colorize('/ophelp',systemColor)} - Show all ${colorize('privileged commands',opColor)}
+        ${colorize('/free',opColor)} - Free mode allows anyone to choose a chart
+        ${colorize('/freerate',opColor)} - Free rate allows players to play any rate
+        ${colorize('/countdown',opColor)} - Enable a countdown before starting the chart
+        ${colorize('/stop',opColor)} - Stop the current countdown
+        ${colorize('/op',opColor)} - Give a player ${colorize('Operator',opColor)} privileges`;
+        //helpMessage.split('\n').forEach(l => player.sendChat(PRIVATE_MESSAGE, l));  //old
+        player.sendChat(PRIVATE_MESSAGE, helpMessage);
+      },
+      ophelp: (player: Player) => {
+        const ophelpMessage = `${colorize('Operator Commands:',opColor)} ${colorize('(Owner)',ownerColor)}
+        ${colorize('/free',opColor)} - Free mode allows anyone to choose a chart
+        ${colorize('/freerate',opColor)} - Free rate allows players to play any rate
+        ${colorize('/force',opColor)} - Ignore players not being readied up
+        ${colorize('/countdown',opColor)} - Enable a countdown before starting the chart
+        ${colorize('/stop',opColor)} - Stop the current countdown
+        ${colorize('/op',opColor)} - Give a player ${colorize('Operator',opColor)} privileges
+        ${colorize('/kick',opColor)} - Kick a player
+        ${colorize('/selectionmode',opColor)} - Change what determines a unique song
+        ${colorize('/title',ownerColor)} - Change the room's title
+        ${colorize('/desc',ownerColor)} - Change the room's description
+        ${colorize('/pass',ownerColor)} - Change the room's password`;
+        player.sendChat(PRIVATE_MESSAGE, ophelpMessage);
       },
       request: (player: Player, command: string, params: string[]) => {
         this.requestChart(player, params);
@@ -302,7 +312,7 @@ export class ETTServer {
       },
       commonpacks: (player: Player, room: Room, command: string, params: string[]) => {
         const commonPacks = room.commonPacks();
-        if (commonPacks.length > 0) room.sendChat(`Common packs: ${commonPacks.join(',')}`);
+        if (commonPacks.length > 0) room.sendChat(`Common packs: ${commonPacks.join(', ')}`);
         else room.sendChat(`No pack in common between the players in the room :(`);
       },
       countdown: (player: Player, room: Room, command: string, params: string[]) => {
@@ -312,48 +322,45 @@ export class ETTServer {
         if (room.isOwner(player)) {
           room.desc = desc;
           this.updateRoom(room);
-          room.sendChat('');
-          room.sendChat(`${systemPrepend}${player.user} changed the room description to ${desc}`);
+          if (desc) {
+            room.sendChat(`${systemPrepend}${player.user} changed the room description to ${desc}.`);
+          } else {
+            room.sendChat(`${systemPrepend}${player.user} removed the room description.`);
+          }
         } else {
-          player.sendChat(
-            ROOM_MESSAGE,
-            `${systemPrepend}${
-            player.user
-            }, you're not the room owner so you cannot change the description`,
-            room.name
-          );
+          room.sendChat(`${systemPrepend}${player.user} is not owner, cannot change the room description.`);
         }
       },
       title: (player: Player, room: Room, command: string, [title]: string[]) => {
-        if (room.isOwner(player)) {
+        if (room.isOwner(player) && title) {
           room.name = title;
           this.updateRoom(room);
-          room.sendChat('');
-          room.sendChat(`${systemPrepend}${player.user} renamed the room to ${title}`);
+          room.sendChat(`${systemPrepend}${player.user} renamed the room to ${title}.`);
+        } else if (room.isOwner(player) && !title) {
+          room.sendChat(`${systemPrepend}${player.user}, you didn't provide a room name.`);
         } else {
-          player.sendChat(
-            ROOM_MESSAGE,
-            `${systemPrepend}${
-            player.user
-            }, you're not the room owner so you cannot change the title`,
-            room.name
-          );
+          room.sendChat(`${systemPrepend}${player.user} is not owner, cannot change the room name.`);
         }
       },
       pass: (player: Player, room: Room, command: string, [pass]: string[]) => {
-        if (room.isOwner(player)) {
+        if (room.isOwner(player) && pass) {
+          if (room.pass != "") {
+            room.sendChat(`${systemPrepend}${player.user} changed the room password.`);
+          } else {
+            room.sendChat(`${systemPrepend}${player.user} enabled a room password.`);
+          }
           room.pass = pass;
           this.updateRoom(room);
-          room.sendChat('');
-          room.sendChat(`${systemPrepend}${player.user} changed the room password`);
+        } else if (room.isOwner(player) && !pass) {
+          if (room.pass != "") {
+            room.sendChat(`${systemPrepend}${player.user} removed the room password.`);
+          } else {
+            room.sendChat(`${systemPrepend}${player.user}, room already has no password.`);
+          }
+          room.pass = "";
+          this.updateRoom(room);
         } else {
-          player.sendChat(
-            ROOM_MESSAGE,
-            `${systemPrepend}${
-            player.user
-            }, you're not the room owner so you cannot change the password`,
-            room.name
-          );
+          room.sendChat(`${systemPrepend}${player.user} is not owner, cannot change the room password.`);
         }
       },
       kick: (player: Player, room: Room, command: string, [user]: string[]) => {
@@ -368,22 +375,10 @@ export class ETTServer {
             playerToKick.send(makeMessage('kicked'));
             this.leaveRoom(playerToKick);
           } else {
-            player.sendChat(
-              ROOM_MESSAGE,
-              `${systemPrepend}${player.user},  you have insufficient rights to kick ${
-              playerToKick.user
-              }`,
-              room.name
-            );
+            room.sendChat(`${systemPrepend}${player.user} is not privileged, cannot kick ${ playerToKick.user }.`);
           }
         } else {
-          player.sendChat(
-            ROOM_MESSAGE,
-            `${systemPrepend}${
-            player.user
-            }, you're not the room owner so you cannot change the password`,
-            room.name
-          );
+          room.sendChat(`${systemPrepend}Player ${user} is not in lobby, cannot be kicked`);
         }
       },
       force: (player: Player, room: Room) => {
@@ -495,11 +490,11 @@ export class ETTServer {
       this.sendAll(makeMessage('deleteroom', { room: room.serialize() }));
     } else {
       // send notice to players in room that someone left
-      room.sendChat(`${systemPrepend}${player.user} left`);
+      room.sendChat(`${systemPrepend}${player.user} left.`);
       this.updateRoom(room);
     }
     player.send(makeMessage('leaveroom')); // So the client can exit the room when kicked
-    player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Left room ${room.name}`);
+    player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Left room ${room.name}.`);
   }
 
   resendAllRooms() {
@@ -592,8 +587,7 @@ export class ETTServer {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
           } else {
-            logger.debug(`Connection closed so msg not
-ent: ${str}`);
+            logger.debug(`Connection closed so msg not sent: ${str}`);
           }
         };
       }
@@ -729,7 +723,7 @@ ent: ${str}`);
 
   onStartChart(player: Player, message: ChartMsg) {
     if (!player.room) {
-      player.sendPM(`${systemPrepend}You're not in a room`);
+      player.sendPM(`${systemPrepend}You're not in a room.`);
       return;
     }
     if (!player.room.canSelect(player)) {
@@ -844,6 +838,7 @@ ent: ${str}`);
           if (res === true) {
             player.user = message.user;
             player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+            player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Enter ${colorize('/help',systemColor)} to see all commands.`);
             player.send(makeMessage('login', { logged: true, msg: '' }));
             this.sendLobbyList(player);
             this.addPlayerInLobbyLists(player);
@@ -862,6 +857,7 @@ ent: ${str}`);
         bcrypt.hash(message.pass, saltRounds, (err: Error, hash: string) => {
           this.createAccount(player, hash);
           player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+          player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Enter ${colorize('/help',systemColor)} to see all commands.`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
           this.sendLobbyList(player);
           this.addPlayerInLobbyLists(player);
@@ -883,6 +879,7 @@ ent: ${str}`);
           player.user = user;
 
           player.sendChat(LOBBY_MESSAGE, `Welcome to ${colorize(this.serverName)}`);
+          player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Enter ${colorize('/help',systemColor)} to see all commands.`);
           player.send(makeMessage('login', { logged: true, msg: '' }));
           this.sendLobbyList(player);
           this.addPlayerInLobbyLists(player);
@@ -963,7 +960,7 @@ ent: ${str}`);
   static onMissingChart(player: Player) {
     if (!player.user || !player.room) return;
     if (player.room) {
-      player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart`);
+      player.room.sendChat(`${systemPrepend}${player.user} doesnt have the chart.`);
     }
   }
 
@@ -973,7 +970,7 @@ ent: ${str}`);
     }
 
     if (!message.name) {
-      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Cannot use empty room name`);
+      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Cannot use empty room name.`);
       return;
     }
 
@@ -992,7 +989,7 @@ ent: ${str}`);
       player.readystate = false;
     } else {
       player.send(makeMessage('createroom', { created: false }));
-      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Room name already in use`);
+      player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Room name already in use.`);
     }
   }
 
@@ -1015,7 +1012,7 @@ ent: ${str}`);
         this.enterRoom(player, room);
       } else {
         player.send(makeMessage('enterroom', { entered: false }));
-        player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Incorrect password`);
+        player.sendChat(LOBBY_MESSAGE, `${systemPrepend}Incorrect password.`);
       }
     else {
       player.readystate = false;
@@ -1098,7 +1095,7 @@ ent: ${str}`);
         if (!player.room || player.room.name !== message.tab) {
           player.sendChat(
             ROOM_MESSAGE,
-            `${systemPrepend}You're not in the room ${message.tab}`,
+            `${systemPrepend}You're not in the room ${message.tab}.`,
             message.tab
           );
           return;
@@ -1143,7 +1140,7 @@ ent: ${str}`);
     if (!this.userHasPemission(player, 'chartRequesting')) {
       player.sendChat(
         PRIVATE_MESSAGE,
-        `${systemPrepend}You are not allowed to send chart requests. Contact a server admin`
+        `${systemPrepend}You are not allowed to send chart requests. Contact a server admin.`
       );
       return;
     }

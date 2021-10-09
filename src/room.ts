@@ -8,6 +8,7 @@ import {
   selectionModeDescriptions,
   selectionModes,
   stringToColour,
+  systemColor,
   systemPrepend,
   unauthorizedChat
 } from './utils';
@@ -99,10 +100,10 @@ export class Room {
     if (this.isOperatorOrOwner(player)) {
       if (this.forcestart === true) {
         this.forcestart = false;
-        this.sendChat(`${systemPrepend} force start disabled.`);
+        this.sendChat(`${systemPrepend} Force start disabled.`);
       } else {
         this.forcestart = true;
-        this.sendChat(`${systemPrepend} force start enabled for this song.`);
+        this.sendChat(`${systemPrepend} Force start enabled for this song.`);
       }
     } else {
       unauthorizedChat(player, true);
@@ -149,7 +150,7 @@ export class Room {
 
     const selectionMode: (ch: Chart) => any = selectionModes[this.selectionMode];
     if (!selectionMode) {
-      this.sendChat(`${systemPrepend}Invalid selection mode`);
+      this.sendChat(`${systemPrepend}Invalid selection mode.`);
       return {};
     }
 
@@ -192,7 +193,7 @@ export class Room {
         this.state = INGAME;
 
         this.send(makeMessage('startchart', { chart: newChart }));
-        this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
+        this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title, systemColor)}`);
 
         this.playing = true;
       });
@@ -225,7 +226,7 @@ export class Room {
       this.state = INGAME;
 
       this.send(makeMessage('startchart', { chart: newChart }));
-      this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title)}`);
+      this.sendChat(`${systemPrepend}Starting ${colorize(this.chart.title, systemColor)}`);
 
       this.playing = true;
     }
@@ -277,10 +278,10 @@ export class Room {
     this.send(makeMessage('selectchart', { chart: this.serializeChart() }));
     this.sendChat(
       `${systemPrepend}${player.user} selected ${colorize(
-        `${message.title} (${message.difficulty}: ${message.meter}) ${
-          message.pack ? `[${message.pack}]` : ``
-        } ${message.rate ? ` ${parseFloat((message.rate / 1000).toFixed(2))}` : ''}`,
-        stringToColour(message.title)
+        `${message.title} (${message.difficulty}) ${message.rate ? ` ${
+          parseFloat((message.rate / 1000).toFixed(2))}x` : ''} ${
+          message.pack ? `[${message.pack}]` : `` } `,
+        systemColor
       )}`
     );
   }
@@ -313,7 +314,7 @@ export class Room {
     this.players.push(player);
 
     player.send(makeMessage('enterroom', { entered: true }));
-    this.sendChat(`${systemPrepend}${player.user} joined`);
+    this.sendChat(`${systemPrepend}${player.user} joined.`);
 
     player.state = READY;
 
@@ -421,7 +422,7 @@ export class Room {
     if (this.isOperatorOrOwner(player)) {
       this.free = !this.free;
       this.sendChat(
-        `${systemPrepend}The room is now ${this.free ? '' : 'not '}in free song picking mode`
+        `${systemPrepend}The room is ${this.free ? 'now' : 'no longer'} in free song picking mode.`
       );
     } else {
       unauthorizedChat(player, true);
@@ -432,7 +433,7 @@ export class Room {
     if (this.isOperatorOrOwner(player)) {
       this.freerate = !this.freerate;
 
-      this.sendChat(`${systemPrepend}The room is now ${this.freerate ? '' : 'not'} rate free mode`);
+      this.sendChat(`${systemPrepend}The room is ${this.freerate ? 'now' : 'no longer'} in rate free mode.`);
     } else {
       unauthorizedChat(player, true);
     }
@@ -445,19 +446,17 @@ export class Room {
       if (!selectionMode) {
         player.sendChat(
           1,
-          `${systemPrepend}Invalid selection mode. Valid ones are:\n
-              ${JSON.stringify(selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
+          `${systemPrepend}Invalid selection mode, ${player.user}. Valid ones are: ${JSON.stringify(
+            selectionModeDescriptions, null, 4).replace(/[{}]/g, '')}`,
           this.name
         );
+      } else {
+        this.selectionMode = +params[0];
+        this.sendChat(
+          `${systemPrepend}The room is now in "${ selectionModeDescriptions[+params[0]]
+          }" selection mode.`
+        );
       }
-
-      this.selectionMode = +params[0];
-
-      this.sendChat(
-        `${systemPrepend}The room is now in "${
-          selectionModeDescriptions[+params[0]]
-        }" selection mode`
-      );
     } else {
       unauthorizedChat(player);
     }
@@ -466,10 +465,9 @@ export class Room {
   roll(player: Player, command: string, params: string[]) {
     if (!Number.isNaN(parseInt(params[0], 10))) {
       const rolledNumber = Math.floor(Math.random() * parseInt(params[0], 10));
-
-      this.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber}`);
+      this.sendChat(`${systemPrepend}${player.user} rolled ${rolledNumber + 1} (max ${parseInt(params[0],10)}).`);
     } else {
-      this.sendChat(`${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 10)}`);
+      this.sendChat(`${systemPrepend}${player.user} rolled ${Math.floor(Math.random() * 100) + 1} (max 100).`);
     }
   }
 
@@ -482,10 +480,10 @@ export class Room {
 
       if (!this.ops.find(x => x === params[0])) {
         this.ops.push(params[0]);
-        this.sendChat(`${systemPrepend}${params[0]} is now a room operator`);
+        this.sendChat(`${systemPrepend}${params[0]} is now a room operator.`);
       } else {
         this.ops = this.ops.filter(x => x !== params[0]);
-        this.sendChat(`${systemPrepend}${params[0]} is no longer a room operator`);
+        this.sendChat(`${systemPrepend}${params[0]} is no longer a room operator.`);
       }
     } else {
       unauthorizedChat(player);
@@ -503,11 +501,11 @@ export class Room {
       let currentTimer: number = limit;
 
       this.timerInterval = setInterval(() => {
-        this.sendChat(`${systemPrepend}Starting in ${currentTimer} seconds`);
+        this.sendChat(`${systemPrepend}Starting in ${currentTimer} seconds.`);
 
         currentTimer -= 1;
         if (currentTimer === 0) {
-          this.sendChat(`${systemPrepend}Starting song in ${currentTimer} seconds`);
+          this.sendChat(`${systemPrepend}Starting song.`);
           clearInterval(this.timerInterval);
           this.countdownStarted = false;
           resolve(true);
@@ -518,22 +516,21 @@ export class Room {
 
   stopTimer() {
     this.countdownStarted = false;
-    this.sendChat(`${systemPrepend}Song start cancelled!`);
+    this.sendChat(`${systemPrepend}Countdown cancelled!`);
     clearInterval(this.timerInterval);
   }
 
   enableCountdown(player: Player, command: string, params: string[]) {
-    if (this.countdown === true) {
+    if (this.countdown === true && !params[0]) {
       this.countdown = false;
-      this.sendChat(`${systemPrepend}Countdown disabled, songs will start instantly`);
+      this.sendChat(`${systemPrepend}Countdown disabled, songs will start instantly.`);
       return;
-    }
-
-    if (!params[0]) {
-      this.sendChat(`${systemPrepend}Please set a countdown timer between 2 and 15`);
+    } else if (!params[0] || isNaN(parseInt(params[0])) || parseInt(params[0], 10) < 2 || parseInt(params[0], 10) > 20 ) {
+      this.sendChat(`${systemPrepend}Please set a countdown timer between 2 and 20.`);
     } else {
-      this.countdown = !this.countdown;
+      this.countdown = true;
       this.timerLimit = parseInt(params[0], 10);
+      this.sendChat(`${systemPrepend}Countdown of ${params[0]} seconds enabled.`);
     }
   }
 }
