@@ -587,7 +587,7 @@ export class ETTServer {
           if (ws.readyState === 1) {
             ws.tmpaux(str);
           } else {
-            logger.debug(`Connection closed so msg not ent: ${str}`);
+            logger.debug(`Connection closed so msg not sent: ${str}`);
           }
         };
       }
